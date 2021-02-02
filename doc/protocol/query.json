@@ -1,0 +1,7 @@
+// GET https://justdancenow.com/query
+{
+  "wsUrl": "wss://ire-prod-drs.justdancenow.com",
+  "jdns": "https://ire-prod-jdns.justdancenow.com/",
+  "wsClient": "ODQuODEuMTguMTQ3",
+  "wsTag": "ec769a36d51af623687c0348dd19e00f"
+}

@@ -1,0 +1,31 @@
+// Request
+{
+  "func": "registerRoom",
+  "device": {
+    "ua": "Mozilla/5.0 (X11; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0",
+    "browser": {
+      "name": "Firefox",
+      "version": "83.0",
+      "major": "83"
+    },
+    "engine": {
+      "name": "Gecko",
+      "version": "83.0"
+    },
+    "os": {
+      "name": "Linux",
+      "version": "x86_64"
+    },
+    "device": {
+      "model": "AndroidTV" //todo: Just Dance thinks my laptop is a TV ??!
+    },
+    "cpu": {
+      "architecture": "amd64"
+    }
+  },
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:83.0) Gecko/20100101 Firefox/83.0",
+  "lang": "en",
+  "timezoneOffset": -3600000,
+  "webSession": "x1xxxxxxx2xxxxxx3xxxx",
+  "videoFormat": "hlsVideo"
+}

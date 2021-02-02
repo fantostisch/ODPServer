@@ -1,0 +1,21 @@
+#todo: not working: standard_init_linux.go:219: exec user process caused: no such file or directory
+# maybe because I am building on Debian and running on alpine?
+FROM alpine:3
+
+LABEL Description="Image for Online Dance Party Server"
+
+ARG dist_dir
+ARG install_dir=/opt/ODPServer
+
+EXPOSE 32623
+
+RUN mkdir -p ${install_dir}
+COPY ${dist_dir}/build/ODPServer/ODPServer ${install_dir}
+
+RUN apk update
+RUN apk upgrade
+RUN apk add ca-certificates
+
+WORKDIR ${install_dir}
+
+CMD ["./ODPServer"]

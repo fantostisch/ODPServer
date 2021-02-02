@@ -7,7 +7,7 @@ todo: publish docker container on dockerhub
 Because [justdancenow.com](https://justdancenow.com) uses HTTPS, your server has to support a secure
 connection. You can use NGINX to handle the secure connection.
 
-Configure a webserver to handle TLS. [Example NGINX configuration](doc/dance.example.vhost). To
+Configure a webserver to handle TLS. [Example NGINX configuration](dance.example.vhost). To
 obtain a certificate:
 
 ```sh

@@ -30,8 +30,8 @@ import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
 import qualified GHC.Conc as Conc
-import JDNWSURL (JDNWSURL (..), newJDNWSURL)
 import qualified JDNWSURL
+import JDNWSURL (JDNWSURL)
 import Network.HTTP.Simple (Response, getResponseBody, httpJSON)
 import Network.HTTP.Types (status200, status404)
 import qualified Network.URL as URL
@@ -171,9 +171,9 @@ createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> IO ThreadId
 createJDNThread originalWSURL sendChannel receiveChannel =
   forkFinally
     ( Wuss.runSecureClientWith
-        (host originalWSURL)
+        (JDNWSURL.host originalWSURL)
         443
-        (pathAndParams originalWSURL)
+        (JDNWSURL.pathAndParams originalWSURL)
         webSocketConnectionOptions
         [ ("Origin", "https://justdancenow.com"),
           ("Sec-WebSocket-Protocol", secWebSocketProtocol)
@@ -306,7 +306,7 @@ handleHost host originalWSURL wsConn tr = do
       receiveChannel <- case savedRoom of
         Just room -> pure $ Room.receiveChannel room
         Nothing -> atomically TChan.newBroadcastTChan
-      jdnThread <- case savedRoom of
+      jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
         Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel
       registerRoomResponse <- case savedRoom of
@@ -344,7 +344,7 @@ handleHost host originalWSURL wsConn tr = do
                         { Room.sendChannel = sendChannel,
                           Room.receiveChannel = receiveChannel,
                           Room.hostThread = hostSendingThread,
-                          Room.jdnThread = fromJust jdnThread, --todo: do not use fromJust
+                          Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
                           Room.registerRoomResponse = registerRoomResponse,
                           Room.followerThreads = [hostReceivingThread]
                         }
@@ -353,7 +353,7 @@ handleHost host originalWSURL wsConn tr = do
 
       case result of
         Left m -> do
-          case jdnThread of
+          case jdnThreadMaybe of
             Nothing -> pure ()
             Just jdnThread -> killThread jdnThread
           _ <- killThread hostSendingThread
@@ -375,7 +375,7 @@ application tr wsHostsTVar pending = do
 
   wsHosts <- atomically $ TVar.readTVar wsHostsTVar
   jdnWSURL <-
-    newJDNWSURL
+    JDNWSURL.newJDNWSURL
       wsHosts
       (drop (length JDNWSURL.protocol + length ("://" :: String)) (WSURLData.originalWSURL wsURLData))
       (URL.url_params requestURL)

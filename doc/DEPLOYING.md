@@ -31,7 +31,7 @@ docker load --input odp.tar
 # Stop and remove existing container
 docker stop odp && docker rm odp
 # Run the docker container:
-docker run --network host --detach --name odp odp
+docker run --network host --restart=always --detach --name odp odp
 ```
 
 Fill in your server address in the extension and have fun!

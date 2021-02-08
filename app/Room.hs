@@ -11,7 +11,7 @@ data Room = Room
     sendChannel :: ODPChannel,
     hostThread :: ThreadId,
     jdnThread :: ThreadId,
-    registerRoomResponse :: MVar BS.ByteString,
+    registerRoomResponse :: BS.ByteString,
     followerThreads :: [ThreadId]
   }
   deriving (Eq)

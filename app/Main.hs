@@ -4,9 +4,9 @@
 
 module Main where
 
-import Control.Concurrent (MVar, ThreadId, forkFinally, killThread)
+import Control.Concurrent (MVar, ThreadId, forkFinally, forkIO, killThread)
 import qualified Control.Concurrent.MVar as MVar
-import Control.Concurrent.STM (TVar, atomically)
+import Control.Concurrent.STM (TVar, atomically, retry)
 import qualified Control.Concurrent.STM.TChan as TChan
 import qualified Control.Concurrent.STM.TVar as TVar
 import Control.Exception (try)
@@ -30,8 +30,8 @@ import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
 import qualified GHC.Conc as Conc
-import qualified JDNWSURL
 import JDNWSURL (JDNWSURL)
+import qualified JDNWSURL
 import Network.HTTP.Simple (Response, getResponseBody, httpJSON)
 import Network.HTTP.Types (status200, status404)
 import qualified Network.URL as URL
@@ -151,13 +151,12 @@ jdnClientApp sendChannel receiveChannel conn = do
           --todo: kill sending thread, if no one reads sendChannel the messages will pile up in memory
       )
 
-  receiveChannelDup <- atomically $ TChan.dupTChan receiveChannel
   err <-
     ( try
         ( forever $ do
             msg <- WS.receiveData conn
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
-            atomically $ TChan.writeTChan receiveChannelDup msg
+            atomically $ TChan.writeTChan receiveChannel msg
         ) ::
         IO (Either SomeException Void)
       )
@@ -186,19 +185,13 @@ createJDNThread originalWSURL sendChannel receiveChannel =
     )
 
 -- thread that sends from host to JDN
-createHostSendingThread :: WS.Connection -> ODPChannel -> MVar C.ByteString -> IO (ThreadId, MVar ())
-createHostSendingThread conn sendChannel registerRoom = do
+createHostSendingThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createHostSendingThread conn sendChannel = do
   mVar <- MVar.newEmptyMVar
   debug $ putStrLn "Creating host thread."
   threadId <-
     forkFinally
       ( do
-          registerRoomMaybe <- MVar.tryReadMVar registerRoom
-          case registerRoomMaybe of
-            Just registerRoomResponse -> do
-              _ <- WS.receiveData conn :: IO BS.ByteString -- wait for register room request
-              WS.sendTextData conn registerRoomResponse
-            Nothing -> pure ()
           forever $
             do
               msg <- WS.receiveData conn
@@ -216,8 +209,8 @@ getFunction msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: S
 {- todo: if the sending thread of the host dies, the receiving end will think it is still a host and
  sender: web will not be replaced with sender: app -}
 -- thread that receives from JDN and sends to the host
-createHostReceivingThread :: WS.Connection -> ODPChannel -> MVar C.ByteString -> IO (ThreadId, MVar ())
-createHostReceivingThread conn recvChannel registerRoom = do
+createHostReceivingThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createHostReceivingThread conn recvChannel = do
   mVar <- MVar.newEmptyMVar
   threadId <-
     forkFinally
@@ -225,16 +218,6 @@ createHostReceivingThread conn recvChannel registerRoom = do
           chan <- atomically $ TChan.dupTChan recvChannel
           forever $ do
             msg <- atomically $ TChan.readTChan chan
-            _ <-
-              if getFunction msg == registerRoomFuncName
-                then do
-                  {- if we overwrite the existing registerRoom inside the MVar something is wrong,
-                   because then the host should not have send a registerRoom and we should not have
-                   received a registerRoom -}
-                  _ <- MVar.tryPutMVar registerRoom msg
-                  pure ()
-                else pure ()
-
             case msg of
               -- _ | msg == ping -> pure () --todo: let server send pong, ping pong should work even if host dies
               _ -> do
@@ -247,44 +230,48 @@ createHostReceivingThread conn recvChannel registerRoom = do
       )
   pure (threadId, mVar)
 
-handleFollower :: Follower -> WS.Connection -> Rooms -> IO (Either String (MVar ()))
+--todo: warn user if there is no host
+handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
 handleFollower follower conn rooms = do
-  let savedRoom = Rooms.lookup (ODPClient.hostToFollow follower) rooms
-  case savedRoom of
-    Nothing -> pure $ Left "No such host"
-    Just room -> do
-      receiveMVar <- MVar.newEmptyMVar
-      _ <-
-        forkFinally
-          ( do
-              chan <- atomically $ TChan.dupTChan (Room.receiveChannel room)
-              _ <- WS.receiveData conn :: IO BS.ByteString -- wait for register room request
-              registerRoomMsg <- MVar.readMVar (Room.registerRoomResponse room)
-              WS.sendTextData conn registerRoomMsg
-              forever $ do
-                originalMsg <- atomically $ TChan.readTChan chan
+  (room, registerRoomResponse) <-
+    atomically $
+      TVar.readTVar rooms
+        <&> Rooms.lookup (ODPClient.hostToFollow follower)
+        >>= ( \case
+                Nothing -> retry
+                Just room -> pure (room, Room.registerRoomResponse room)
+            )
+  receiveMVar <- MVar.newEmptyMVar
+  _ <-
+    forkFinally
+      ( do
+          chan <- atomically $ TChan.dupTChan (Room.receiveChannel room)
+          _ <- WS.receiveData conn :: IO BS.ByteString -- wait for register room request
+          WS.sendTextData conn registerRoomResponse
+          forever $ do
+            originalMsg <- atomically $ TChan.readTChan chan
 
-                let prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
-                let msgNoPrefix = BS.drop prefixLength originalMsg
-                let prefix = BS.take prefixLength originalMsg
-                let msg = case (decode (B.fromStrict msgNoPrefix) :: Maybe Object) of
-                      Just o -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
-                      Nothing -> originalMsg
-                case msg of
-                  _ | msg == ping -> pure ()
-                  _ -> do
-                    debug $ putStrLn $ "Sending message to follower: " ++ show msg
-                    WS.sendTextData conn msg
-          )
-          ( \(result :: Either SomeException Void) -> do
-              debug $ putStrLn $ "Follower thread ended: " ++ show result
-              MVar.putMVar receiveMVar ()
-          )
-      pure $ Right receiveMVar
+            let prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
+            let msgNoPrefix = BS.drop prefixLength originalMsg
+            let prefix = BS.take prefixLength originalMsg
+            let msg = case (decode (B.fromStrict msgNoPrefix) :: Maybe Object) of
+                  Just o -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
+                  Nothing -> originalMsg
+            case msg of
+              _ | msg == ping -> pure ()
+              _ -> do
+                debug $ putStrLn $ "Sending message to follower: " ++ show msg
+                WS.sendTextData conn msg
+      )
+      ( \(result :: Either SomeException Void) -> do
+          debug $ putStrLn $ "Follower thread ended: " ++ show result
+          MVar.putMVar receiveMVar ()
+      )
+  pure $ Right receiveMVar
 
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
-  savedRoom <- atomically $ TVar.readTVar tr <&> Rooms.lookup (ODPClient.id host)
+  savedRoom <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
 
   running <- case savedRoom of
     Nothing -> pure False
@@ -309,16 +296,33 @@ handleHost host originalWSURL wsConn tr = do
       jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
         Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel
+
+      registerRoomRequest <- WS.receiveData wsConn
       registerRoomResponse <- case savedRoom of
         Just room -> pure $ Room.registerRoomResponse room
-        Nothing -> MVar.newEmptyMVar
-      (hostReceivingThread, recvMVar) <- createHostReceivingThread wsConn receiveChannel registerRoomResponse
-      (hostSendingThread, sendMVar) <- createHostSendingThread wsConn sendChannel registerRoomResponse
+        Nothing -> do
+          registerRoomResponseMVar <- MVar.newEmptyMVar
+          _ <-
+            forkIO
+              ( do
+                  dupChan <- atomically $ TChan.dupTChan receiveChannel
+                  registerRoomResponse <- atomically $ TChan.readTChan dupChan
+                  MVar.putMVar registerRoomResponseMVar registerRoomResponse
+              )
+          _ <- atomically $ TChan.writeTChan sendChannel registerRoomRequest
+          debug $ putStrLn "Waiting for registerRoom response"
+          MVar.readMVar registerRoomResponseMVar
+      debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
+      WS.sendTextData wsConn registerRoomResponse
+
+      (hostSendingThread, sendMVar) <- createHostSendingThread wsConn sendChannel
+      (hostReceivingThread, recvMVar) <- createHostReceivingThread wsConn receiveChannel
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr
         let savedRoom2 = Rooms.lookup (ODPClient.id host) rooms
-        if (savedRoom2 <&> (\r -> r {Room.followerThreads = []})) /= (savedRoom <&> (\r -> r {Room.followerThreads = []}))
+        if (savedRoom2 <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = ""}))
+          /= (savedRoom <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = ""}))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
           else case savedRoom2 of
             Just room ->
@@ -382,7 +386,6 @@ application tr wsHostsTVar pending = do
       & mapLeft InvalidRequest
       & orElseThrowEither
 
-  rooms <- atomically $ TVar.readTVar tr
   wsConn <- WS.acceptRequestWith pending (WS.defaultAcceptRequest {WS.acceptSubprotocol = Just secWebSocketProtocol})
   -- todo: do we need a ping thread?
   -- todo: just dance also does ping?
@@ -396,7 +399,7 @@ application tr wsHostsTVar pending = do
                   Right (recvMVar, sendMVAr) -> MVar.takeMVar recvMVar >> MVar.takeMVar sendMVAr
               )
       Follower follower ->
-        handleFollower follower wsConn rooms
+        handleFollower follower wsConn tr
           >>= ( \case
                   Left err -> debug $ putStrLn err
                   Right mVar -> MVar.takeMVar mVar

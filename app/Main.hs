@@ -67,9 +67,6 @@ webSocketConnectionOptions =
 secWebSocketProtocol :: BS.ByteString
 secWebSocketProtocol = "screen.justdancenow.com"
 
-registerRoomFuncName :: BS.ByteString
-registerRoomFuncName = "registerRoom"
-
 ping :: BS.ByteString
 ping = "000f{\"func\":\"ping\"}"
 

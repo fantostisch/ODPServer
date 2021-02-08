@@ -157,6 +157,7 @@ jdnClientApp sendChannel receiveChannel conn = do
             msg <- WS.receiveData conn
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
             atomically $ TChan.writeTChan receiveChannel msg
+            --todo: if no one reads these messages they will pile up in memory
         ) ::
         IO (Either SomeException Void)
       )
@@ -292,7 +293,7 @@ handleHost host originalWSURL wsConn tr = do
         Nothing -> atomically TChan.newTChan
       receiveChannel <- case savedRoom of
         Just room -> pure $ Room.receiveChannel room
-        Nothing -> atomically TChan.newBroadcastTChan
+        Nothing -> atomically TChan.newTChan
       jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
         Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel
@@ -301,17 +302,9 @@ handleHost host originalWSURL wsConn tr = do
       registerRoomResponse <- case savedRoom of
         Just room -> pure $ Room.registerRoomResponse room
         Nothing -> do
-          registerRoomResponseMVar <- MVar.newEmptyMVar
-          _ <-
-            forkIO
-              ( do
-                  dupChan <- atomically $ TChan.dupTChan receiveChannel
-                  registerRoomResponse <- atomically $ TChan.readTChan dupChan
-                  MVar.putMVar registerRoomResponseMVar registerRoomResponse
-              )
           _ <- atomically $ TChan.writeTChan sendChannel registerRoomRequest
           debug $ putStrLn "Waiting for registerRoom response"
-          MVar.readMVar registerRoomResponseMVar
+          atomically $ TChan.readTChan receiveChannel
       debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
       WS.sendTextData wsConn registerRoomResponse
 

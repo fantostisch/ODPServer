@@ -186,8 +186,8 @@ createJDNThread originalWSURL sendChannel receiveChannel =
     )
 
 -- thread that sends from host to JDN
-createHostSendingThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
-createHostSendingThread conn sendChannel = do
+createSendToHostThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createSendToHostThread conn sendChannel = do
   mVar <- MVar.newEmptyMVar
   debug $ putStrLn "Creating host thread."
   threadId <-
@@ -210,8 +210,8 @@ getFunction msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: S
 {- todo: if the sending thread of the host dies, the receiving end will think it is still a host and
  sender: web will not be replaced with sender: app -}
 -- thread that receives from JDN and sends to the host
-createHostReceivingThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
-createHostReceivingThread conn recvChannel = do
+createReceiveFromHostThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createReceiveFromHostThread conn recvChannel = do
   mVar <- MVar.newEmptyMVar
   threadId <-
     forkFinally
@@ -308,8 +308,8 @@ handleHost host originalWSURL wsConn tr = do
       debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
       WS.sendTextData wsConn registerRoomResponse
 
-      (hostSendingThread, sendMVar) <- createHostSendingThread wsConn sendChannel
-      (hostReceivingThread, recvMVar) <- createHostReceivingThread wsConn receiveChannel
+      (hostSendingThread, sendMVar) <- createSendToHostThread wsConn sendChannel
+      (hostReceivingThread, recvMVar) <- createReceiveFromHostThread wsConn receiveChannel
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f9c27a6edb1ae35a3d6910fd0d2a0c7e7e5538c53fb66be1bc120c8998d73d57
+-- hash: 7a569dc7a19b3d1cff4ab1453742f0b88e0c01723c5dcab4787ab231a99aac3e
 
 name:           ODPServer
 version:        0.1.0.0
@@ -16,6 +16,7 @@ executable ODPServer
   main-is: Main.hs
   other-modules:
       Debug
+      JDNProtocol
       JDNWSURL
       ODPClient
       ODPException

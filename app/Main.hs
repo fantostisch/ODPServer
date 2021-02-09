@@ -4,7 +4,7 @@
 
 module Main where
 
-import Control.Concurrent (MVar, ThreadId, forkFinally, forkIO, killThread)
+import Control.Concurrent (MVar, ThreadId, forkFinally, killThread)
 import qualified Control.Concurrent.MVar as MVar
 import Control.Concurrent.STM (TVar, atomically, retry)
 import qualified Control.Concurrent.STM.TChan as TChan
@@ -30,6 +30,7 @@ import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
 import qualified GHC.Conc as Conc
+import qualified JDNProtocol
 import JDNWSURL (JDNWSURL)
 import qualified JDNWSURL
 import Network.HTTP.Simple (Response, getResponseBody, httpJSON)
@@ -46,7 +47,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 import ODPClient
 import ODPException
-import Room (ODPChannel)
+import Room (ODPChannel, Player)
 import qualified Room
 import Rooms (Rooms)
 import qualified Rooms
@@ -57,22 +58,6 @@ import qualified Wuss
 
 type WSHostsTVar = TVar (HS.HashSet String)
 
-webSocketConnectionOptions :: WS.ConnectionOptions
-webSocketConnectionOptions =
-  WS.defaultConnectionOptions
-    { WS.connectionCompressionOptions = WS.PermessageDeflateCompression WS.defaultPermessageDeflate
-    }
-
---todo: use protocol specified by client instead of hardcoding protocol
-secWebSocketProtocol :: BS.ByteString
-secWebSocketProtocol = "screen.justdancenow.com"
-
-ping :: BS.ByteString
-ping = "000f{\"func\":\"ping\"}"
-
-pong :: BS.ByteString
-pong = "000f{\"func\":\"pong\"}"
-
 main :: IO ()
 main = do
   let host = "localhost"
@@ -82,7 +67,7 @@ main = do
   allowedWSURLs <- atomically $ TVar.newTVar HS.empty
   Warp.runSettings
     (Warp.setHost "localhost" {- todo -} $ Warp.setPort port Warp.defaultSettings)
-    $ WaiWS.websocketsOr webSocketConnectionOptions (application state allowedWSURLs) (httpApp allowedWSURLs)
+    $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state allowedWSURLs) (httpApp allowedWSURLs)
 
 httpApp :: WSHostsTVar -> Wai.Application
 httpApp allowedWSURLs request respond = do
@@ -134,6 +119,9 @@ query allowedWSURLs request odpClientDataText = do
       ]
       (encode modifiedResponse)
 
+--updatePlayers :: TVar Rooms -> BS.ByteString -> IO()
+--updatePlayers rooms message =
+
 jdnClientApp :: ODPChannel -> ODPChannel -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel conn = do
   sendingThread <-
@@ -171,9 +159,9 @@ createJDNThread originalWSURL sendChannel receiveChannel =
         (JDNWSURL.host originalWSURL)
         443
         (JDNWSURL.pathAndParams originalWSURL)
-        webSocketConnectionOptions
+        JDNProtocol.webSocketConnectionOptions
         [ ("Origin", "https://justdancenow.com"),
-          ("Sec-WebSocket-Protocol", secWebSocketProtocol)
+          ("Sec-WebSocket-Protocol", JDNProtocol.secWebSocketProtocol)
         ]
         (jdnClientApp sendChannel receiveChannel)
     )
@@ -201,9 +189,6 @@ createSendToHostThread conn sendChannel = do
       )
   pure (threadId, mVar)
 
-getFunction :: BS.ByteString -> BS.ByteString
-getFunction msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: String)) msg)
-
 {- todo: if the sending thread of the host dies, the receiving end will think it is still a host and
  sender: web will not be replaced with sender: app -}
 -- thread that receives from JDN and sends to the host
@@ -228,6 +213,11 @@ createReceiveFromHostThread conn recvChannel = do
       )
   pure (threadId, mVar)
 
+sendInitialSate :: WS.Connection -> BS.ByteString -> [Player] -> IO ()
+sendInitialSate conn registerRoomResponse players = do
+  WS.sendTextData conn registerRoomResponse
+  mapM_ (WS.sendTextData conn . Room.playerJoined) players
+
 --todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
 handleFollower follower conn rooms = do
@@ -245,10 +235,11 @@ handleFollower follower conn rooms = do
       ( do
           chan <- atomically $ TChan.dupTChan (Room.receiveChannel room)
           _ <- WS.receiveData conn :: IO BS.ByteString -- wait for register room request
-          WS.sendTextData conn registerRoomResponse
+          _ <- sendInitialSate conn registerRoomResponse (Room.players room)
           forever $ do
             originalMsg <- atomically $ TChan.readTChan chan
 
+            --todo: do this calculation once, not for every follower
             let prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
             let msgNoPrefix = BS.drop prefixLength originalMsg
             let prefix = BS.take prefixLength originalMsg
@@ -256,7 +247,7 @@ handleFollower follower conn rooms = do
                   Just o -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
                   Nothing -> originalMsg
             case msg of
-              _ | msg == ping -> pure ()
+              _ | msg == JDNProtocol.ping -> pure ()
               _ -> do
                 debug $ putStrLn $ "Sending message to follower: " ++ show msg
                 WS.sendTextData conn msg
@@ -303,7 +294,10 @@ handleHost host originalWSURL wsConn tr = do
           debug $ putStrLn "Waiting for registerRoom response"
           atomically $ TChan.readTChan receiveChannel
       debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
-      WS.sendTextData wsConn registerRoomResponse
+
+      let players = maybe [] Room.players savedRoom
+
+      sendInitialSate wsConn registerRoomResponse players
 
       (hostSendingThread, sendMVar) <- createSendToHostThread wsConn sendChannel
       (hostReceivingThread, recvMVar) <- createReceiveFromHostThread wsConn receiveChannel
@@ -311,8 +305,8 @@ handleHost host originalWSURL wsConn tr = do
       result <- atomically $ do
         rooms <- TVar.readTVar tr
         let savedRoom2 = Rooms.lookup (ODPClient.id host) rooms
-        if (savedRoom2 <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = ""}))
-          /= (savedRoom <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = ""}))
+        if (savedRoom2 <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
+          /= (savedRoom <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
           else case savedRoom2 of
             Just room ->
@@ -340,6 +334,7 @@ handleHost host originalWSURL wsConn tr = do
                           Room.hostThread = hostSendingThread,
                           Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
                           Room.registerRoomResponse = registerRoomResponse,
+                          Room.players = [],
                           Room.followerThreads = [hostReceivingThread]
                         }
                       rooms
@@ -376,7 +371,7 @@ application tr wsHostsTVar pending = do
       & mapLeft InvalidRequest
       & orElseThrowEither
 
-  wsConn <- WS.acceptRequestWith pending (WS.defaultAcceptRequest {WS.acceptSubprotocol = Just secWebSocketProtocol})
+  wsConn <- WS.acceptRequestWith pending (WS.defaultAcceptRequest {WS.acceptSubprotocol = Just JDNProtocol.secWebSocketProtocol})
   -- todo: do we need a ping thread?
   -- todo: just dance also does ping?
   -- todo: check origin

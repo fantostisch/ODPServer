@@ -30,6 +30,7 @@ import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
 import qualified GHC.Conc as Conc
+import JDNProtocol (PlayerJoinedOrLeft (..))
 import qualified JDNProtocol
 import JDNWSURL (JDNWSURL)
 import qualified JDNWSURL
@@ -47,8 +48,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 import ODPClient
 import ODPException
-import Player (Player)
-import qualified Player
+import Player (Player (..))
 import Room (ODPChannel)
 import qualified Room
 import Rooms (Rooms)
@@ -121,11 +121,28 @@ query allowedWSURLs request odpClientDataText = do
       ]
       (encode modifiedResponse)
 
---updatePlayers :: TVar Rooms -> BS.ByteString -> IO()
---updatePlayers rooms message =
+updatePlayers :: PlayerJoinedOrLeft -> BS.ByteString -> [Player] -> Maybe [Player]
+updatePlayers PlayerJoined message players =
+  playerJoinedIDMaybe
+    <&> ( \playerJoinedID ->
+            Player
+              { Player.id = playerJoinedID,
+                Player.playerJoined = message
+              } :
+            players
+        )
+  where
+    playerJoinedIDMaybe = JDNProtocol.idFromPlayerJoined message
+updatePlayers PlayerLeft message players =
+  playerLeftIDMaybe
+    <&> ( \playerLeftID ->
+            filter (\p -> Player.id p /= playerLeftID) players
+        )
+  where
+    playerLeftIDMaybe = JDNProtocol.idFromPlayerLeft message
 
-jdnClientApp :: ODPChannel -> ODPChannel -> WS.ClientApp ()
-jdnClientApp sendChannel receiveChannel conn = do
+jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
+jdnClientApp sendChannel receiveChannel tPlayers conn = do
   sendingThread <-
     forkFinally
       ( forever $ do
@@ -143,6 +160,13 @@ jdnClientApp sendChannel receiveChannel conn = do
         ( forever $ do
             msg <- WS.receiveData conn
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
+            case JDNProtocol.getFunction msg of
+              Just f -> atomically $ do
+                room <- TVar.readTVar tPlayers
+                case updatePlayers f msg room of
+                  Just updatedRoom -> TVar.writeTVar tPlayers updatedRoom
+                  Nothing -> pure () --something is wrong, todo: log this
+              Nothing -> pure ()
             atomically $ TChan.writeTChan receiveChannel msg
             --todo: if no one reads these messages they will pile up in memory
         ) ::
@@ -154,8 +178,8 @@ jdnClientApp sendChannel receiveChannel conn = do
   killThread sendingThread
 
 --todo: kill this thread and remove room when there are no hosts and no followers
-createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> IO ThreadId
-createJDNThread originalWSURL sendChannel receiveChannel =
+createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar [Player] -> IO ThreadId
+createJDNThread originalWSURL sendChannel receiveChannel tRoom =
   forkFinally
     ( Wuss.runSecureClientWith
         (JDNWSURL.host originalWSURL)
@@ -165,7 +189,7 @@ createJDNThread originalWSURL sendChannel receiveChannel =
         [ ("Origin", "https://justdancenow.com"),
           ("Sec-WebSocket-Protocol", JDNProtocol.secWebSocketProtocol)
         ]
-        (jdnClientApp sendChannel receiveChannel)
+        (jdnClientApp sendChannel receiveChannel tRoom)
     )
     ( \(result :: Either SomeException ()) -> do
         debug $ putStrLn $ "jdnClientApp ended: " ++ show result
@@ -215,9 +239,10 @@ createReceiveFromHostThread conn recvChannel = do
       )
   pure (threadId, mVar)
 
-sendInitialSate :: WS.Connection -> BS.ByteString -> [Player] -> IO ()
-sendInitialSate conn registerRoomResponse players = do
+sendInitialSate :: WS.Connection -> BS.ByteString -> TVar [Player] -> IO ()
+sendInitialSate conn registerRoomResponse tPlayers = do
   WS.sendTextData conn registerRoomResponse
+  players <- atomically $ TVar.readTVar tPlayers
   mapM_ (WS.sendTextData conn . Player.playerJoined) players
 
 --todo: warn user if there is no host
@@ -275,6 +300,10 @@ handleHost host originalWSURL wsConn tr = do
                 ThreadDied -> False
             )
 
+  tPlayers <- case savedRoom of
+    Nothing -> atomically $ TVar.newTVar []
+    Just room -> pure $ Room.players room
+
   if running
     then pure $ Left "HostID already claimed."
     else do
@@ -286,7 +315,7 @@ handleHost host originalWSURL wsConn tr = do
         Nothing -> atomically TChan.newTChan
       jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
-        Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel
+        Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel tPlayers
 
       registerRoomRequest <- WS.receiveData wsConn
       registerRoomResponse <- case savedRoom of
@@ -297,9 +326,7 @@ handleHost host originalWSURL wsConn tr = do
           atomically $ TChan.readTChan receiveChannel
       debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
 
-      let players = maybe [] Room.players savedRoom
-
-      sendInitialSate wsConn registerRoomResponse players
+      sendInitialSate wsConn registerRoomResponse tPlayers
 
       (hostSendingThread, sendMVar) <- createSendToHostThread wsConn sendChannel
       (hostReceivingThread, recvMVar) <- createReceiveFromHostThread wsConn receiveChannel
@@ -310,8 +337,8 @@ handleHost host originalWSURL wsConn tr = do
         savedRoom2 <- case roomTVarMaybe2 of
           Nothing -> pure Nothing
           Just roomTVar -> TVar.readTVar roomTVar <&> Just
-        if (savedRoom2 <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
-          /= (savedRoom <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
+        if (savedRoom2 <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
+          /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
           else case roomTVarMaybe2 of
             Just roomTVar ->
@@ -333,7 +360,7 @@ handleHost host originalWSURL wsConn tr = do
                       Room.hostThread = hostSendingThread,
                       Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
                       Room.registerRoomResponse = registerRoomResponse,
-                      Room.players = [],
+                      Room.players = tPlayers,
                       Room.followerThreads = [hostReceivingThread]
                     }
               Right

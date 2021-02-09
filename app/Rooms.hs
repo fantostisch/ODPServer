@@ -14,7 +14,7 @@ import qualified Data.Map.Strict as Map
 import ODPClient (HostID)
 import Room
 
-type Rooms = Map HostID (TVar Room)
+type Rooms = Map HostID (TVar Room) --todo: TVar of Room is not used, remove?
 
 new :: Rooms
 new = Map.empty

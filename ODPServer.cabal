@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7a569dc7a19b3d1cff4ab1453742f0b88e0c01723c5dcab4787ab231a99aac3e
+-- hash: 320a38287bd1d8b6cedbc00c9b6c157818fafd9c0f6f7829278a7be9282e7f9d
 
 name:           ODPServer
 version:        0.1.0.0
@@ -20,6 +20,7 @@ executable ODPServer
       JDNWSURL
       ODPClient
       ODPException
+      Player
       Room
       Rooms
       Utils

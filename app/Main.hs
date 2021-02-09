@@ -12,7 +12,7 @@ import qualified Control.Concurrent.STM.TVar as TVar
 import Control.Exception (try)
 import Control.Exception.Base (SomeException)
 import Control.Monad (forever)
-import Data.Aeson (Object, decode, eitherDecode, encode)
+import Data.Aeson (Object, eitherDecode, encode)
 import Data.Aeson.Types (Value (..), parseMaybe, (.:))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
@@ -47,7 +47,9 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 import ODPClient
 import ODPException
-import Room (ODPChannel, Player)
+import Player (Player)
+import qualified Player
+import Room (ODPChannel)
 import qualified Room
 import Rooms (Rooms)
 import qualified Rooms
@@ -216,7 +218,7 @@ createReceiveFromHostThread conn recvChannel = do
 sendInitialSate :: WS.Connection -> BS.ByteString -> [Player] -> IO ()
 sendInitialSate conn registerRoomResponse players = do
   WS.sendTextData conn registerRoomResponse
-  mapM_ (WS.sendTextData conn . Room.playerJoined) players
+  mapM_ (WS.sendTextData conn . Player.playerJoined) players
 
 --todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))

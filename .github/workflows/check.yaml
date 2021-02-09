@@ -12,5 +12,5 @@ jobs:
 
       - name: Check
         run: |
-          stack build
+          stack build --fast
           stack test

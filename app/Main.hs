@@ -239,14 +239,10 @@ handleFollower follower conn rooms = do
           _ <- sendInitialSate conn registerRoomResponse (Room.players room)
           forever $ do
             originalMsg <- atomically $ TChan.readTChan chan
-
             --todo: do this calculation once, not for every follower
-            let prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
-            let msgNoPrefix = BS.drop prefixLength originalMsg
-            let prefix = BS.take prefixLength originalMsg
-            let msg = case (decode (B.fromStrict msgNoPrefix) :: Maybe Object) of
-                  Just o -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
-                  Nothing -> originalMsg
+            let msg = case JDNProtocol.parseMessage originalMsg of
+                  (prefix, Just o) -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
+                  (_, Nothing) -> originalMsg
             case msg of
               _ | msg == JDNProtocol.ping -> pure ()
               _ -> do

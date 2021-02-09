@@ -1,0 +1,16 @@
+name: Check
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    name: Check
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check
+        run: |
+          stack build
+          stack test

@@ -282,6 +282,16 @@ handleFollower follower conn rooms = do
       )
   pure $ Right receiveMVar
 
+threadRunning :: ThreadId -> IO Bool
+threadRunning threadID =
+  Conc.threadStatus threadID
+    <&> ( \case
+            ThreadRunning -> True
+            ThreadBlocked _ -> True
+            ThreadFinished -> False
+            ThreadDied -> False
+        )
+
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
   roomTVarMaybe <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
@@ -291,14 +301,7 @@ handleHost host originalWSURL wsConn tr = do
 
   running <- case savedRoom of
     Nothing -> pure False
-    Just room ->
-      room & Room.hostThread & Conc.threadStatus
-        <&> ( \case
-                ThreadRunning -> True
-                ThreadBlocked _ -> True
-                ThreadFinished -> False
-                ThreadDied -> False
-            )
+    Just room -> room & Room.hostThread & threadRunning
 
   tPlayers <- case savedRoom of
     Nothing -> atomically $ TVar.newTVar []

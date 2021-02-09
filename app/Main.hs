@@ -221,14 +221,15 @@ sendInitialSate conn registerRoomResponse players = do
 --todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
 handleFollower follower conn rooms = do
-  (room, registerRoomResponse) <-
+  roomTVar <-
     atomically $
       TVar.readTVar rooms
         <&> Rooms.lookup (ODPClient.hostToFollow follower)
         >>= ( \case
                 Nothing -> retry
-                Just room -> pure (room, Room.registerRoomResponse room)
+                Just roomTVar -> pure roomTVar
             )
+  (room, registerRoomResponse) <- atomically $ TVar.readTVar roomTVar <&> (\room -> (room, Room.registerRoomResponse room))
   receiveMVar <- MVar.newEmptyMVar
   _ <-
     forkFinally
@@ -260,7 +261,10 @@ handleFollower follower conn rooms = do
 
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
-  savedRoom <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
+  roomTVarMaybe <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
+  savedRoom <- case roomTVarMaybe of
+    Nothing -> pure Nothing
+    Just roomTVar -> atomically $ TVar.readTVar roomTVar <&> Just
 
   running <- case savedRoom of
     Nothing -> pure False
@@ -304,39 +308,42 @@ handleHost host originalWSURL wsConn tr = do
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr
-        let savedRoom2 = Rooms.lookup (ODPClient.id host) rooms
+        let roomTVarMaybe2 = Rooms.lookup (ODPClient.id host) rooms
+        savedRoom2 <- case roomTVarMaybe2 of
+          Nothing -> pure Nothing
+          Just roomTVar -> TVar.readTVar roomTVar <&> Just
         if (savedRoom2 <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
           /= (savedRoom <&> (\r -> r {Room.followerThreads = [], Room.registerRoomResponse = "", Room.players = []}))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
-          else case savedRoom2 of
-            Just room ->
+          else case roomTVarMaybe2 of
+            Just roomTVar ->
+              TVar.modifyTVar
+                roomTVar
+                ( \room ->
+                    room
+                      { Room.hostThread = hostSendingThread,
+                        Room.followerThreads = hostReceivingThread : Room.followerThreads room
+                      }
+                )
+                <&> Right
+            Nothing -> do
+              newRoom <-
+                TVar.newTVar $
+                  Room.Room
+                    { Room.sendChannel = sendChannel,
+                      Room.receiveChannel = receiveChannel,
+                      Room.hostThread = hostSendingThread,
+                      Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
+                      Room.registerRoomResponse = registerRoomResponse,
+                      Room.players = [],
+                      Room.followerThreads = [hostReceivingThread]
+                    }
               Right
                 <$> TVar.writeTVar
                   tr
                   ( Rooms.insert
                       (ODPClient.id host)
-                      ( room
-                          { Room.hostThread = hostSendingThread,
-                            Room.followerThreads = hostReceivingThread : Room.followerThreads room
-                          }
-                      )
-                      rooms
-                  )
-            Nothing ->
-              Right
-                <$> TVar.writeTVar
-                  tr
-                  ( Rooms.insert
-                      (ODPClient.id host)
-                      Room.Room
-                        { Room.sendChannel = sendChannel,
-                          Room.receiveChannel = receiveChannel,
-                          Room.hostThread = hostSendingThread,
-                          Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
-                          Room.registerRoomResponse = registerRoomResponse,
-                          Room.players = [],
-                          Room.followerThreads = [hostReceivingThread]
-                        }
+                      newRoom
                       rooms
                   )
 

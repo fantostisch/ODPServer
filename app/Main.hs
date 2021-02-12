@@ -19,7 +19,7 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
 import Data.Either.Combinators (mapLeft)
 import Data.Function ((&))
-import Data.Functor ((<&>))
+import Data.Functor (($>), (<&>))
 import Data.HashMap.Strict (fromList)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
@@ -178,8 +178,8 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
   killThread sendingThread
 
 --todo: kill this thread and remove room when there are no hosts and no followers
-createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar [Player] -> IO ThreadId
-createJDNThread originalWSURL sendChannel receiveChannel tRoom =
+createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar Rooms -> HostID -> TVar [Player] -> IO ThreadId
+createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers =
   forkFinally
     ( Wuss.runSecureClientWith
         (JDNWSURL.host originalWSURL)
@@ -189,11 +189,23 @@ createJDNThread originalWSURL sendChannel receiveChannel tRoom =
         [ ("Origin", "https://justdancenow.com"),
           ("Sec-WebSocket-Protocol", JDNProtocol.secWebSocketProtocol)
         ]
-        (jdnClientApp sendChannel receiveChannel tRoom)
+        (jdnClientApp sendChannel receiveChannel tPlayers)
     )
     ( \(result :: Either SomeException ()) -> do
         debug $ putStrLn $ "jdnClientApp ended: " ++ show result
-        --todo: kill followers and host thread
+        roomMaybe <- atomically $ do
+          rooms <- TVar.readTVar tRooms
+          let roomMaybe = Rooms.lookup hostId rooms
+          TVar.modifyTVar tRooms (Rooms.delete hostId)
+          pure roomMaybe
+        case roomMaybe of
+          Nothing -> putStrLn "Warning: trying to delete non existing room"
+          Just room -> do
+            debug $ putStrLn "Killing host thread"
+            killThread $ Room.hostThread room
+            debug $ putStrLn "Killing followers"
+            mapM_ killThread (Room.followerThreads room)
+        debug $ putStrLn "jdnClientApp cleanup done"
     )
 
 -- thread that sends from host to JDN
@@ -247,17 +259,18 @@ sendInitialSate conn registerRoomResponse tPlayers = do
 
 --todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
-handleFollower follower conn rooms = do
+handleFollower follower conn tRooms = do
+  let hostId = ODPClient.hostToFollow follower
   (room, registerRoomResponse) <-
     atomically $
-      TVar.readTVar rooms
-        <&> Rooms.lookup (ODPClient.hostToFollow follower)
+      TVar.readTVar tRooms
+        <&> Rooms.lookup hostId
         >>= ( \case
                 Nothing -> retry
                 Just room -> pure (room, Room.registerRoomResponse room)
             )
   receiveMVar <- MVar.newEmptyMVar
-  _ <-
+  threadId <-
     forkFinally
       ( do
           chan <- atomically $ TChan.dupTChan (Room.receiveChannel room)
@@ -279,6 +292,17 @@ handleFollower follower conn rooms = do
           debug $ putStrLn $ "Follower thread ended: " ++ show result
           MVar.putMVar receiveMVar ()
       )
+  success <- atomically $ do
+    rooms <- TVar.readTVar tRooms
+    let maybeRoom = Rooms.lookup hostId rooms
+    case maybeRoom of
+      Nothing -> pure False
+      Just room ->
+        TVar.writeTVar tRooms (Rooms.insert hostId (room {Room.followerThreads = threadId : Room.followerThreads room}) rooms)
+          $> True
+  if success
+    then pure ()
+    else debug (putStrLn "Created follower thread for non existing room") >> killThread threadId
   pure $ Right receiveMVar
 
 threadRunning :: ThreadId -> IO Bool
@@ -314,7 +338,7 @@ handleHost host originalWSURL wsConn tr = do
         Nothing -> atomically TChan.newTChan
       jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
-        Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel tPlayers
+        Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel tr (ODPClient.id host) tPlayers
 
       registerRoomRequest <- WS.receiveData wsConn
       registerRoomResponse <- case savedRoom of
@@ -334,7 +358,7 @@ handleHost host originalWSURL wsConn tr = do
         rooms <- TVar.readTVar tr
         let savedRoom2 = Rooms.lookup (ODPClient.id host) rooms
         if (savedRoom2 <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
-                  /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
+          /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
           else case savedRoom2 of
             Just room ->

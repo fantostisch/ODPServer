@@ -4,6 +4,7 @@ module Rooms
     Rooms.lookup,
     insert,
     adjust,
+    delete,
   )
 where
 

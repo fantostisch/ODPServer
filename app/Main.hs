@@ -325,7 +325,7 @@ threadRunning threadID =
 
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
-  let hostId = (ODPClient.id host)
+  let hostId = ODPClient.id host
   savedRoom <- atomically (TVar.readTVar tr) <&> Rooms.lookup hostId
 
   running <- case savedRoom of

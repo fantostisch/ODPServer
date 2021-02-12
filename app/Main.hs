@@ -248,15 +248,14 @@ sendInitialSate conn registerRoomResponse tPlayers = do
 --todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
 handleFollower follower conn rooms = do
-  roomTVar <-
+  (room, registerRoomResponse) <-
     atomically $
       TVar.readTVar rooms
         <&> Rooms.lookup (ODPClient.hostToFollow follower)
         >>= ( \case
                 Nothing -> retry
-                Just roomTVar -> pure roomTVar
+                Just room -> pure (room, Room.registerRoomResponse room)
             )
-  (room, registerRoomResponse) <- atomically $ TVar.readTVar roomTVar <&> (\room -> (room, Room.registerRoomResponse room))
   receiveMVar <- MVar.newEmptyMVar
   _ <-
     forkFinally
@@ -294,10 +293,7 @@ threadRunning threadID =
 
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
-  roomTVarMaybe <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
-  savedRoom <- case roomTVarMaybe of
-    Nothing -> pure Nothing
-    Just roomTVar -> atomically $ TVar.readTVar roomTVar <&> Just
+  savedRoom <- atomically (TVar.readTVar tr) <&> Rooms.lookup (ODPClient.id host)
 
   running <- case savedRoom of
     Nothing -> pure False
@@ -336,42 +332,39 @@ handleHost host originalWSURL wsConn tr = do
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr
-        let roomTVarMaybe2 = Rooms.lookup (ODPClient.id host) rooms
-        savedRoom2 <- case roomTVarMaybe2 of
-          Nothing -> pure Nothing
-          Just roomTVar -> TVar.readTVar roomTVar <&> Just
+        let savedRoom2 = Rooms.lookup (ODPClient.id host) rooms
         if (savedRoom2 <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
-          /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
+                  /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
           then pure $ Left $ "Room was changed for host: " ++ show (ODPClient.id host) ++ "."
-          else case roomTVarMaybe2 of
-            Just roomTVar ->
-              TVar.modifyTVar
-                roomTVar
-                ( \room ->
-                    room
-                      { Room.hostThread = hostSendingThread,
-                        Room.followerThreads = hostReceivingThread : Room.followerThreads room
-                      }
-                )
-                <&> Right
-            Nothing -> do
-              newRoom <-
-                TVar.newTVar $
-                  Room.Room
-                    { Room.sendChannel = sendChannel,
-                      Room.receiveChannel = receiveChannel,
-                      Room.hostThread = hostSendingThread,
-                      Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
-                      Room.registerRoomResponse = registerRoomResponse,
-                      Room.players = tPlayers,
-                      Room.followerThreads = [hostReceivingThread]
-                    }
+          else case savedRoom2 of
+            Just room ->
               Right
                 <$> TVar.writeTVar
                   tr
                   ( Rooms.insert
                       (ODPClient.id host)
-                      newRoom
+                      ( room
+                          { Room.hostThread = hostSendingThread,
+                            Room.followerThreads = hostReceivingThread : Room.followerThreads room
+                          }
+                      )
+                      rooms
+                  )
+            Nothing ->
+              Right
+                <$> TVar.writeTVar
+                  tr
+                  ( Rooms.insert
+                      (ODPClient.id host)
+                      Room.Room
+                        { Room.sendChannel = sendChannel,
+                          Room.receiveChannel = receiveChannel,
+                          Room.hostThread = hostSendingThread,
+                          Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
+                          Room.registerRoomResponse = registerRoomResponse,
+                          Room.players = tPlayers,
+                          Room.followerThreads = [hostReceivingThread]
+                        }
                       rooms
                   )
 

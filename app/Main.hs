@@ -168,6 +168,8 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
         ( forever $ do
             msg <- WS.receiveData conn
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
+            --todo: if no one reads these messages they will pile up in memory
+            atomically $ TChan.writeTChan receiveChannel msg
             case JDNProtocol.getFunction msg of
               Just f -> atomically $ do
                 room <- TVar.readTVar tPlayers
@@ -175,8 +177,6 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
                   Just updatedRoom -> TVar.writeTVar tPlayers updatedRoom
                   Nothing -> pure () --something is wrong, todo: log this
               Nothing -> pure ()
-            atomically $ TChan.writeTChan receiveChannel msg
-            --todo: if no one reads these messages they will pile up in memory
         ) ::
         IO (Either SomeException Void)
       )

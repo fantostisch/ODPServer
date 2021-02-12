@@ -1,5 +1,9 @@
 # Changelog for Online Dance Party Server
 
+## [1.1.1]
+
+* Followers that join after a player is kicked will now not see this player anymore.
+
 ## [1.1.0]
 
 * Followers will now see all players, even if the follower joined the room after those players

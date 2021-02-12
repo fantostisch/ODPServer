@@ -31,7 +31,7 @@ import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
 import qualified GHC.Conc as Conc
-import JDNProtocol (PlayerJoinedOrLeft (..))
+import JDNProtocol (PlayerUpdate (..))
 import qualified JDNProtocol
 import JDNWSURL (JDNWSURL)
 import qualified JDNWSURL
@@ -122,7 +122,7 @@ query allowedWSURLs request odpClientDataText = do
       ]
       (encode modifiedResponse)
 
-updatePlayers :: PlayerJoinedOrLeft -> BS.ByteString -> [Player] -> Maybe [Player]
+updatePlayers :: PlayerUpdate -> BS.ByteString -> [Player] -> Maybe [Player]
 updatePlayers PlayerJoined message players =
   playerJoinedIDMaybe
     <&> ( \playerJoinedID ->
@@ -141,6 +141,13 @@ updatePlayers PlayerLeft message players =
         )
   where
     playerLeftIDMaybe = JDNProtocol.idFromPlayerLeft message
+updatePlayers PlayerKicked message players =
+  playerKickedIDMaybe
+    <&> ( \playerKickedID ->
+            filter (\p -> Player.id p /= playerKickedID) players
+        )
+  where
+    playerKickedIDMaybe = JDNProtocol.idFromPlayerKicked message
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel tPlayers conn = do

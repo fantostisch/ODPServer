@@ -7,9 +7,10 @@ module JDNProtocol
     pong,
     getFunction,
     parseMessage,
-    PlayerJoinedOrLeft (..),
+    PlayerUpdate (..),
     idFromPlayerJoined,
     idFromPlayerLeft,
+    idFromPlayerKicked,
   )
 where
 
@@ -24,7 +25,7 @@ import Data.Functor ((<&>))
 import Data.Text (Text)
 import qualified Network.WebSockets as WS
 
-data PlayerJoinedOrLeft = PlayerJoined | PlayerLeft
+data PlayerUpdate = PlayerJoined | PlayerLeft | PlayerKicked
 
 webSocketConnectionOptions :: WS.ConnectionOptions
 webSocketConnectionOptions =
@@ -42,15 +43,16 @@ ping = "000f{\"func\":\"ping\"}"
 pong :: BS.ByteString
 pong = "000f{\"func\":\"pong\"}"
 
-parseFunc :: BS.ByteString -> Maybe PlayerJoinedOrLeft
+parseFunc :: BS.ByteString -> Maybe PlayerUpdate
 parseFunc "playerJoined" = Just PlayerJoined
 parseFunc "playerLeft" = Just PlayerLeft
+parseFunc "playerKicked" = Just PlayerKicked
 parseFunc _ = Nothing
 
 extractFunctionString :: BS.ByteString -> BS.ByteString
 extractFunctionString msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: String)) msg)
 
-getFunction :: BS.ByteString -> Maybe PlayerJoinedOrLeft
+getFunction :: BS.ByteString -> Maybe PlayerUpdate
 getFunction = extractFunctionString <&> parseFunc
 
 parseMessage :: C.ByteString -> (C.ByteString, Maybe Aeson.Object)
@@ -75,6 +77,13 @@ idFromPlayerJoined msg =
 
 idFromPlayerLeft :: C.ByteString -> Maybe Text
 idFromPlayerLeft msg =
+  JDNProtocol.parseMessage msg
+    & snd
+    >>= parseMaybe
+      (.: "playerID") --todo: what is the difference between playerID and controller?
+
+idFromPlayerKicked :: C.ByteString -> Maybe Text
+idFromPlayerKicked msg =
   JDNProtocol.parseMessage msg
     & snd
     >>= parseMaybe

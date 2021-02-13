@@ -151,7 +151,7 @@ updatePlayers PlayerKicked message players =
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel tPlayers conn = do
-  sendingThread <-
+  sendingToJDNThread <-
     forkFinally
       ( forever $ do
           msg <- atomically $ TChan.readTChan sendChannel
@@ -183,7 +183,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
       <&> either Prelude.id absurd
 
   debug $ putStrLn ("Receiving jdnClient ended: " ++ show err)
-  killThread sendingThread
+  killThread sendingToJDNThread
 
 --todo: kill this thread and remove room when there are no hosts and no followers
 createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar Rooms -> HostID -> TVar [Player] -> IO ThreadId
@@ -216,9 +216,8 @@ createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers 
         debug $ putStrLn "jdnClientApp cleanup done"
     )
 
--- thread that sends from host to JDN
-createSendToHostThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
-createSendToHostThread conn sendChannel = do
+createHostToSendChannelThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createHostToSendChannelThread conn sendChannel = do
   mVar <- MVar.newEmptyMVar
   debug $ putStrLn "Creating host thread."
   threadId <-
@@ -237,9 +236,8 @@ createSendToHostThread conn sendChannel = do
 
 {- todo: if the sending thread of the host dies, the receiving end will think it is still a host and
  sender: web will not be replaced with sender: app -}
--- thread that receives from JDN and sends to the host
-createReceiveFromHostThread :: WS.Connection -> ODPChannel -> TVar Rooms -> HostID -> IO (ThreadId, MVar ())
-createReceiveFromHostThread conn recvChannel tRooms hostId = do
+createRecvChannelToHostThread :: WS.Connection -> ODPChannel -> TVar Rooms -> HostID -> IO (ThreadId, MVar ())
+createRecvChannelToHostThread conn recvChannel tRooms hostId = do
   mVar <- MVar.newEmptyMVar
   threadId <-
     forkFinally
@@ -367,8 +365,8 @@ handleHost host originalWSURL wsConn tr = do
 
       sendInitialSate wsConn registerRoomResponse tPlayers
 
-      (hostSendingThread, sendMVar) <- createSendToHostThread wsConn sendChannel
-      (hostReceivingThread, recvMVar) <- createReceiveFromHostThread wsConn receiveChannel tr hostId
+      (hostSendingThread, sendMVar) <- createHostToSendChannelThread wsConn sendChannel
+      (hostReceivingThread, recvMVar) <- createRecvChannelToHostThread wsConn receiveChannel tr hostId
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr

@@ -10,6 +10,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Source code formatting check
+        uses: mrkkrp/ormolu-action@v1
+
       - name: Check
         run: |
           stack build --fast

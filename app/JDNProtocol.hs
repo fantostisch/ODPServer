@@ -5,12 +5,9 @@ module JDNProtocol
     secWebSocketProtocol,
     ping,
     pong,
-    getFunction,
-    parseMessage,
+    parsePlayerUpdate,
+    toJSON,
     PlayerUpdate (..),
-    idFromPlayerJoined,
-    idFromPlayerLeft,
-    idFromPlayerKicked,
   )
 where
 
@@ -21,11 +18,12 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
 import Data.Function ((&))
-import Data.Functor ((<&>))
 import Data.Text (Text)
 import qualified Network.WebSockets as WS
 
-data PlayerUpdate = PlayerJoined | PlayerLeft | PlayerKicked
+type PlayerId = Text
+
+data PlayerUpdate = PlayerJoined (Maybe PlayerId) | PlayerLeft (Maybe PlayerId) | PlayerKicked (Maybe PlayerId)
 
 webSocketConnectionOptions :: WS.ConnectionOptions
 webSocketConnectionOptions =
@@ -43,48 +41,31 @@ ping = "000f{\"func\":\"ping\"}"
 pong :: BS.ByteString
 pong = "000f{\"func\":\"pong\"}"
 
-parseFunc :: BS.ByteString -> Maybe PlayerUpdate
-parseFunc "playerJoined" = Just PlayerJoined
-parseFunc "playerLeft" = Just PlayerLeft
-parseFunc "playerKicked" = Just PlayerKicked
-parseFunc _ = Nothing
-
-extractFunctionString :: BS.ByteString -> BS.ByteString
-extractFunctionString msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: String)) msg)
-
-getFunction :: BS.ByteString -> Maybe PlayerUpdate
-getFunction = extractFunctionString <&> parseFunc
-
-parseMessage :: C.ByteString -> (C.ByteString, Maybe Aeson.Object)
-parseMessage msg = (prefix, parseJSON $ B.fromStrict msgNoPrefix)
+toJSON :: C.ByteString -> (C.ByteString, Maybe Aeson.Object)
+toJSON msg = (prefix, Aeson.decode $ B.fromStrict msgNoPrefix)
   where
     prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
     msgNoPrefix = BS.drop prefixLength msg
     prefix = BS.take prefixLength msg
 
-parseJSON :: B.ByteString -> Maybe Aeson.Object
-parseJSON = Aeson.decode
+extractFunctionString :: BS.ByteString -> BS.ByteString
+extractFunctionString msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\":\"" :: String)) msg)
 
-idFromPlayerJoined :: C.ByteString -> Maybe Text
-idFromPlayerJoined msg =
-  JDNProtocol.parseMessage msg
-    & snd
-    >>= parseMaybe
-      ( \obj -> do
-          newPlayer <- obj .: "newPlayer"
-          newPlayer .: "id"
-      )
-
-idFromPlayerLeft :: C.ByteString -> Maybe Text
-idFromPlayerLeft msg =
-  JDNProtocol.parseMessage msg
-    & snd
-    >>= parseMaybe
-      (.: "playerID") --todo: what is the difference between playerID and controller?
-
-idFromPlayerKicked :: C.ByteString -> Maybe Text
-idFromPlayerKicked msg =
-  JDNProtocol.parseMessage msg
-    & snd
-    >>= parseMaybe
-      (.: "playerID") --todo: what is the difference between playerID and controller?
+parsePlayerUpdate :: BS.ByteString -> Maybe PlayerUpdate
+parsePlayerUpdate msg = case extractFunctionString msg of
+  "playerJoined" ->
+    Just $
+      PlayerJoined
+        ( parseJSON
+            ( \obj -> do
+                newPlayer <- obj .: "newPlayer"
+                newPlayer .: "id"
+            )
+        )
+  "playerLeft" -> Just $ PlayerLeft (parseJSON (.: "playerID")) --todo: what is the difference between playerID and controller?
+  "playerKicked" -> Just $ PlayerKicked (parseJSON (.: "playerID")) --todo: what is the difference between playerID and controller?
+  _ -> Nothing
+  where
+    parseJSON x =
+      toJSON msg & snd
+        >>= parseMaybe x

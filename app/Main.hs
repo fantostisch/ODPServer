@@ -123,31 +123,18 @@ query allowedWSURLs request odpClientDataText = do
       (encode modifiedResponse)
 
 updatePlayers :: PlayerUpdate -> BS.ByteString -> [Player] -> Maybe [Player]
-updatePlayers PlayerJoined message players =
-  playerJoinedIDMaybe
-    <&> ( \playerJoinedID ->
-            Player
-              { Player.id = playerJoinedID,
-                Player.playerJoined = message
-              } :
-            players
-        )
-  where
-    playerJoinedIDMaybe = JDNProtocol.idFromPlayerJoined message
-updatePlayers PlayerLeft message players =
-  playerLeftIDMaybe
-    <&> ( \playerLeftID ->
-            filter (\p -> Player.id p /= playerLeftID) players
-        )
-  where
-    playerLeftIDMaybe = JDNProtocol.idFromPlayerLeft message
-updatePlayers PlayerKicked message players =
-  playerKickedIDMaybe
-    <&> ( \playerKickedID ->
-            filter (\p -> Player.id p /= playerKickedID) players
-        )
-  where
-    playerKickedIDMaybe = JDNProtocol.idFromPlayerKicked message
+updatePlayers (PlayerJoined (Just playerID)) message players =
+  Just $
+    Player
+      { Player.id = playerID,
+        Player.playerJoined = message
+      } :
+    players
+updatePlayers (PlayerLeft (Just playerID)) _ players =
+  Just $ filter (\p -> Player.id p /= playerID) players
+updatePlayers (PlayerKicked (Just playerID)) _ players =
+  Just $ filter (\p -> Player.id p /= playerID) players
+updatePlayers _ _ _ = Nothing
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel tPlayers conn = do
@@ -170,7 +157,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
             --todo: if no one reads these messages they will pile up in memory
             atomically $ TChan.writeTChan receiveChannel msg
-            case JDNProtocol.getFunction msg of
+            case JDNProtocol.parsePlayerUpdate msg of
               Just f -> atomically $ do
                 room <- TVar.readTVar tPlayers
                 case updatePlayers f msg room of
@@ -291,7 +278,7 @@ handleFollower follower conn tRooms = do
           forever $ do
             originalMsg <- atomically $ TChan.readTChan chan
             --todo: do this calculation once, not for every follower
-            let msg = case JDNProtocol.parseMessage originalMsg of
+            let msg = case JDNProtocol.toJSON originalMsg of
                   (prefix, Just o) -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
                   (_, Nothing) -> originalMsg
             case msg of

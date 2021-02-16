@@ -7,8 +7,8 @@ todo: publish docker container on dockerhub
 Because [justdancenow.com](https://justdancenow.com) uses HTTPS, your server has to support a secure
 connection. You can use NGINX to handle the secure connection.
 
-Configure a webserver to handle TLS. [Example NGINX configuration](dance.example.vhost). To
-obtain a certificate:
+Configure a webserver to handle TLS. [Example NGINX configuration](dance.example.vhost). To obtain a
+certificate:
 
 ```sh
 sudo certbot certonly -d dance.nickaquina.nl
@@ -36,3 +36,16 @@ docker run --network host --restart=always --detach --name odp odp
 ```
 
 Fill in your server address in the extension and have fun!
+
+## Without docker (todo)
+
+When compiling the program, it will be linked to the version of glibc currently installed. When the
+version of glibc on the server is lower than the one used when compiling, the program will not
+start. There was an attempt at static compilation in
+the [static-build-remove-docker branch](https://github.com/fantostisch/ODPServer/tree/static-build-remove-docker),
+but this results in a segfault. Other possible solutions:
+
+* [Dynamically link to an older version of glibc](https://geekingfrog.com/blog/post/custom-glibc-haskell-binary).
+* Compile on the server
+* Compile inside a docker container
+* Nix?

@@ -15,5 +15,6 @@ jobs:
 
       - name: Check
         run: |
+          cp doc/Settings.example.hs app/Settings.hs
           stack build --fast
           stack test

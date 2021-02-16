@@ -1,3 +1,5 @@
+app/Settings.hs
+
 build/
 .stack-work/
 *~

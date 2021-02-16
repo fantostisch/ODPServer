@@ -3,12 +3,10 @@ module Debug
   )
 where
 
---todo: specify option when compiling?
-debugEnabled :: Bool
-debugEnabled = False
+import qualified Settings
 
 debug :: IO () -> IO ()
 debug a =
-  if debugEnabled
+  if Settings.debugEnabled
     then a
     else pure ()

@@ -17,6 +17,14 @@ relayed through this server.
 
 ## Development
 
+### Setup
+
+```sh
+cp doc/Settings.example.hs app/Settings.hs
+```
+
+### Building and running
+
 Build on every change
 
 ```sh

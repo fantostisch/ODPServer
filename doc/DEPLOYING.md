@@ -18,6 +18,7 @@ Build and deploy the docker container
 
 ```sh
 # Build the docker container
+cp doc/Settings.example.hs app/Settings.hs
 stack build
 docker build -t odp --build-arg dist_dir=$(stack path --dist-dir) .
 # Copy the container to the server.

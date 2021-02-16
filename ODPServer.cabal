@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 320a38287bd1d8b6cedbc00c9b6c157818fafd9c0f6f7829278a7be9282e7f9d
+-- hash: 0b459fa057630bbece11bb3d5f43b7d1c561894f1194479baf1ef6130a8a1522
 
 name:           ODPServer
 version:        0.1.0.0
@@ -28,7 +28,9 @@ executable ODPServer
       Paths_ODPServer
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N -static
+  cc-options: -static
+  ld-options: -static -pthread
   build-depends:
       aeson
     , base >=4.7 && <5

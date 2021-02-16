@@ -1,37 +1,77 @@
 # Deploying your own server
 
-## Using docker image
+## Prerequisites
 
-todo: publish docker container on dockerhub
+### Dependencies
+
+Your server will need to have CA certificates on your server. On Debian these can be installed with:
+
+```sh
+sudo apt-get install ca-certificates
+```
+
+### WebServer for TLS
 
 Because [justdancenow.com](https://justdancenow.com) uses HTTPS, your server has to support a secure
 connection. You can use NGINX to handle the secure connection.
 
-Configure a webserver to handle TLS. [Example NGINX configuration](dance.example.vhost). To
-obtain a certificate:
+Configure a webserver to handle TLS. [Example NGINX configuration](dance.example.vhost). To obtain a
+certificate:
 
 ```sh
 sudo certbot certonly -d dance.nickaquina.nl
 ```
 
-Build and deploy the docker container
+### Setup
+
+Do not run ODPServer as root, but create a new user:
 
 ```sh
-# Build the docker container
+sudo apt-get install adduser
+sudo adduser --system --group --no-create-home odp-server
+```
+
+Create a file named `/etc/systemd/system/odp-server.service` with the following content:
+
+```
+[Unit]
+Description=Onlline Dance Party Server
+After=network.target
+
+[Service]
+ExecStart=/opt/ODPServer/ODPServer
+Restart=on-failure
+User=odp-server
+Group=odp-server
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create a directory for ODPServer on the server:
+
+```sh
+sudo mkdir /opt/ODPServer
+```
+
+## Deploy / Update
+
+```sh
+# Build the project
 stack build
-docker build -t odp --build-arg dist_dir=$(stack path --dist-dir) .
-# Copy the container to the server.
-docker save odp | ssh peter@dance.nickaquina.nl "cat > ~/dance/odp.tar"
-# SSH to the server
-ssh peter@dance.nickaquina.nl
-# Go to directory of docker image
-cd ~/dance/
-# Load the image on the server
-docker load --input odp.tar
-# Stop and remove existing container
-docker stop odp && docker rm odp
-# Run the docker container:
-docker run --network host --restart=always --detach --name odp odp
+# Copy the executable to the server and restart the service
+scp "$(stack path --dist-dir)/build/ODPServer/ODPServer" "peter@dance.nickaquina.nl:~/ODPServer"
+ssh peter@dance.nickaquina.nl "sudo mv ~/ODPServer /opt/ODPServer/ODPServer && sudo service odp-server restart"
 ```
 
 Fill in your server address in the extension and have fun!
+
+## Uninstall
+
+```sh
+sudo service odp-server stop
+sudo delluser odp-server
+sudo rm -rf /opt/ODPServer
+sudo rm -f /etc/systemd/system/odp-server.service
+# sudo apt-get remove ca-certificates adduser
+```

@@ -58,6 +58,7 @@ sudo mkdir /opt/ODPServer
 
 ```sh
 # Build the project
+cp doc/Settings.example.hs app/Settings.hs
 stack build
 # Copy the executable to the server and restart the service
 scp "$(stack path --dist-dir)/build/ODPServer/ODPServer" "peter@dance.nickaquina.nl:~/ODPServer"

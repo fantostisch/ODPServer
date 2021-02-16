@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0b459fa057630bbece11bb3d5f43b7d1c561894f1194479baf1ef6130a8a1522
+-- hash: dd8554cef04ca4a2d0f2cea88a45d2e6723a265c382aef42dd3f26fd4337190a
 
 name:           ODPServer
 version:        0.1.0.0
@@ -23,6 +23,7 @@ executable ODPServer
       Player
       Room
       Rooms
+      Settings
       Utils
       WSURLData
       Paths_ODPServer

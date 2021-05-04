@@ -75,6 +75,7 @@ httpApp :: Wai.Application
 httpApp request respond = do
   let path = request & pathInfo
   response <- case path of
+    -- /v1/query is used by extension <= v1.1.0, here for backward compatibility
     ["v1", "query", odpClientDataText] -> query request odpClientDataText
     ["about"] -> pure $ responseLBS status200 [] "{\"name\":\"OnlineDanceParty\",\"supported\":[1]}"
     _ -> pure $ responseLBS status404 [] "Not found"

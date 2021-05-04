@@ -25,7 +25,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 import qualified Data.List as List
 import Data.Maybe (fromJust)
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8')
 import Data.Void (Void, absurd)
 import Debug
@@ -67,16 +67,15 @@ main = do
   let port = 32623
   putStrLn $ "Starting on http://" ++ host ++ ":" ++ show port
   state <- atomically $ TVar.newTVar Rooms.new
-  allowedWSURLs <- atomically $ TVar.newTVar HS.empty
   Warp.runSettings
     (Warp.setHost "localhost" {- todo -} $ Warp.setPort port Warp.defaultSettings)
-    $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state allowedWSURLs) (httpApp allowedWSURLs)
+    $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state) httpApp
 
-httpApp :: WSHostsTVar -> Wai.Application
-httpApp allowedWSURLs request respond = do
+httpApp :: Wai.Application
+httpApp request respond = do
   let path = request & pathInfo
   response <- case path of
-    ["v1", "query", odpClientDataText] -> query allowedWSURLs request odpClientDataText
+    ["v1", "query", odpClientDataText] -> query request odpClientDataText
     ["about"] -> pure $ responseLBS status200 [] "{\"name\":\"OnlineDanceParty\",\"supported\":[1]}"
     _ -> pure $ responseLBS status404 [] "Not found"
   respond response
@@ -85,8 +84,8 @@ getJSONString :: Text -> Object -> Maybe Text
 getJSONString key json = flip parseMaybe json $ \obj -> do
   obj .: key
 
-query :: WSHostsTVar -> Wai.Request -> Text -> IO Wai.Response
-query allowedWSURLs request odpClientDataText = do
+query :: Wai.Request -> Text -> IO Wai.Response
+query request odpClientDataText = do
   odpClientData <-
     (decode'' odpClientDataText :: Maybe Object)
       & orElseThrowMaybe (InvalidRequest "Could not decode client data")
@@ -100,8 +99,6 @@ query allowedWSURLs request odpClientDataText = do
   let wsURLKey = "wsUrl"
   wsURL <- responseBody & getJSONString wsURLKey & orElseThrowMaybe (JDNCommunicationError "Could not get wsUrl")
 
-  let wsURLString = unpack wsURL
-  _ <- atomically $ TVar.modifyTVar allowedWSURLs (HS.insert (drop (length ("wss://" :: String)) wsURLString))
   let wsURLData =
         Object
           ( fromList
@@ -404,8 +401,8 @@ handleHost host originalWSURL wsConn tr = do
           handleHost host originalWSURL wsConn tr
         Right _ -> pure $ Right (recvMVar, sendMVar)
 
-application :: TVar Rooms -> WSHostsTVar -> WS.ServerApp
-application tr wsHostsTVar pending = do
+application :: TVar Rooms -> WS.ServerApp
+application tr pending = do
   let requestURLByteString = C.unpack $ WS.requestPath $ WS.pendingRequest pending
   requestURL <- requestURLByteString & URL.importURL & orElseThrowMaybe (InvalidRequest "Invalid URL.")
   let requestPath = requestURL & URL.url_path
@@ -415,10 +412,8 @@ application tr wsHostsTVar pending = do
       & mapLeft InvalidRequest
       & orElseThrowEither
 
-  wsHosts <- atomically $ TVar.readTVar wsHostsTVar
   jdnWSURL <-
     JDNWSURL.newJDNWSURL
-      wsHosts
       (drop (length JDNWSURL.protocol + length ("://" :: String)) (WSURLData.originalWSURL wsURLData))
       (URL.url_params requestURL)
       & mapLeft InvalidRequest

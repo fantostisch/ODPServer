@@ -18,8 +18,24 @@ port = 433
 path :: String
 path = "/screen"
 
-newJDNWSURL :: HashSet String -> String -> [(String, String)] -> Either String JDNWSURL
-newJDNWSURL trustedHosts host params =
-  if host `HS.member` trustedHosts
+ireHost :: String
+ireHost = "ire-prod-drs.justdancenow.com"
+
+locationLength :: Int
+locationLength = length "ire"
+
+allowedLocationCharacters :: [Char]
+allowedLocationCharacters = "abcdefghijklmnopqrstuvwyz"
+
+isValidJDNWSHost :: String -> Bool
+isValidJDNWSHost url =
+  let (location, remaining) = splitAt locationLength url
+      correctLocation = all (`elem` allowedLocationCharacters) location
+      correctRemaining = remaining == drop locationLength ireHost
+   in correctRemaining && correctLocation
+
+newJDNWSURL :: String -> [(String, String)] -> Either String JDNWSURL
+newJDNWSURL host params =
+  if isValidJDNWSHost host
     then Right JDNWSURL {host = host, pathAndParams = path ++ URL.exportParams params}
     else Left $ "Untrusted host: " ++ host

@@ -67,7 +67,7 @@ main = do
   let port = 32623
   putStrLn $ "Starting on http://" ++ host ++ ":" ++ show port
   state <- atomically $ TVar.newTVar Rooms.new
-  allowedWSURLs <- atomically $ TVar.newTVar $ HS.fromList ["sap-prod-drs.justdancenow.com"]
+  allowedWSURLs <- atomically $ TVar.newTVar $ HS.fromList ["vir-prod-drs.justdancenow.com"]
   Warp.runSettings
     (Warp.setHost "localhost" {- todo -} $ Warp.setPort port Warp.defaultSettings)
     $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state allowedWSURLs) (httpApp allowedWSURLs)
@@ -419,7 +419,7 @@ application tr wsHostsTVar pending = do
   jdnWSURL <-
     JDNWSURL.newJDNWSURL
       wsHosts
-      (drop (length JDNWSURL.protocol + length ("://" :: String)) "wss://sap-prod-drs.justdancenow.com")
+      (drop (length JDNWSURL.protocol + length ("://" :: String)) "wss://vir-prod-drs.justdancenow.com")
       (URL.url_params requestURL)
       & mapLeft InvalidRequest
       & orElseThrowEither

@@ -25,7 +25,7 @@ locationLength :: Int
 locationLength = length "ire"
 
 allowedLocationCharacters :: [Char]
-allowedLocationCharacters = "abcdefghijklmnopqrstuvwyz"
+allowedLocationCharacters = "abcdefghijklmnopqrstuvwxyz"
 
 isValidJDNWSHost :: String -> Bool
 isValidJDNWSHost url =

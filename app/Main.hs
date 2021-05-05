@@ -413,20 +413,19 @@ application tr pending = do
       & mapLeft InvalidRequest
       & orElseThrowEither
 
-  jdnWSURL <-
-    JDNWSURL.newJDNWSURL
-      (drop (length JDNWSURL.protocol + length ("://" :: String)) (WSURLData.originalWSURL wsURLData))
-      (URL.url_params requestURL)
-      & mapLeft InvalidRequest
-      & orElseThrowEither
-
   wsConn <- WS.acceptRequestWith pending (WS.defaultAcceptRequest {WS.acceptSubprotocol = Just JDNProtocol.secWebSocketProtocol})
   -- todo: do we need a ping thread?
   -- todo: just dance also does ping?
   -- todo: check origin
   WS.withPingThread wsConn 30 (return ()) $ do
     case WSURLData.odpClient wsURLData of
-      Host host ->
+      Host host -> do
+        jdnWSURL <-
+          JDNWSURL.newJDNWSURL
+            (drop (length JDNWSURL.protocol + length ("://" :: String)) (WSURLData.originalWSURL wsURLData))
+            (URL.url_params requestURL)
+            & mapLeft InvalidRequest
+            & orElseThrowEither
         handleHost host jdnWSURL wsConn tr
           >>= ( \case
                   Left err -> debug $ putStrLn err

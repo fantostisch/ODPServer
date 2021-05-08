@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 04535a6544c3bfb7fa9fdc3145ed5aa9e1f75d801104c4c2cd59d7255c6b6542
+-- hash: db0676000fd9b1a6190a8fb73e441703fefc654b611a3e43d7e6d03b7e201751
 
 name:           ODPServer
 version:        0.1.0.0
@@ -42,6 +42,7 @@ executable ODPServer
     , text
     , unordered-containers
     , url
+    , utf8-string
     , wai
     , wai-websockets
     , warp
@@ -65,6 +66,7 @@ test-suite ODPServer-test
       Settings
       Utils
       WSURLData
+      JDNProtocolSpec
       JDNWSURLSpec
       Paths_ODPServer
   hs-source-dirs:
@@ -84,6 +86,7 @@ test-suite ODPServer-test
     , text
     , unordered-containers
     , url
+    , utf8-string
     , wai
     , wai-websockets
     , warp

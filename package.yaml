@@ -13,6 +13,7 @@ dependencies:
   - text
   - unordered-containers
   - url
+  - utf8-string
   - wai
   - wai-websockets
   - warp

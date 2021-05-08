@@ -13,12 +13,3 @@
 
 We can not use wsTag and wsClient as unique identifier, because they do not seem to differ when
 using another browser on the same device.
-
-## What do the 4 characters before every websocket message mean?
-
-For example:
-
-```
-"000f{\"func\":\"ping\"}"
-"000f{\"func\":\"pong\"}"
-```

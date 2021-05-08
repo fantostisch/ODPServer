@@ -2,6 +2,7 @@ module Utils
   ( orElseThrowMaybe,
     orElseThrowEither,
     decode'',
+    padLeft,
   )
 where
 
@@ -21,3 +22,6 @@ orElseThrowEither (Right b) = pure b
 
 decode'' :: FromJSON a => Text -> Maybe a
 decode'' = decode . toLazyByteString . encodeUtf8Builder
+
+padLeft :: Int -> a -> [a] -> [a]
+padLeft n x xs = replicate (n - length xs) x ++ xs

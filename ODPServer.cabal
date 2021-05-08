@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dd8554cef04ca4a2d0f2cea88a45d2e6723a265c382aef42dd3f26fd4337190a
+-- hash: 04535a6544c3bfb7fa9fdc3145ed5aa9e1f75d801104c4c2cd59d7255c6b6542
 
 name:           ODPServer
 version:        0.1.0.0
@@ -53,8 +53,22 @@ test-suite ODPServer-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Debug
+      JDNProtocol
+      JDNWSURL
+      Main
+      ODPClient
+      ODPException
+      Player
+      Room
+      Rooms
+      Settings
+      Utils
+      WSURLData
+      JDNWSURLSpec
       Paths_ODPServer
   hs-source-dirs:
+      app
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
@@ -63,6 +77,7 @@ test-suite ODPServer-test
     , bytestring
     , containers
     , either
+    , hspec
     , http-conduit
     , http-types
     , stm

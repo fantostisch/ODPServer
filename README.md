@@ -25,10 +25,16 @@ cp doc/Settings.example.hs app/Settings.hs
 
 ### Building and running
 
-Build on every change
+Build on every change:
 
 ```sh
 stack build --fast --file-watch
+```
+
+Running:
+
+```sh
+stack run
 ```
 
 Running with stack traces:
@@ -37,11 +43,13 @@ Running with stack traces:
 stack run --profile -- +RTS -xc -RTS
 ```
 
-Running
+### Testing
 
 ```sh
-stack run
+stack test
 ```
+
+### Formatting
 
 Please format all code using [ormolu](https://github.com/tweag/ormolu).
 

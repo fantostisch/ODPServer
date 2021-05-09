@@ -1,0 +1,23 @@
+{
+  "xpDetails": {
+    "start": {
+      "endBracket": 1220,
+      "xp": 0,
+      "startBracket": 0,
+      "level": 1
+    },
+    "end": {
+      "endBracket": 1220,
+      "xp": 1000,
+      "startBracket": 0,
+      "level": 1
+    },
+    "completed": 0.8196
+  },
+  "func": "songEnd",
+  "nbPlayers": 1,
+  "rewards": [],
+  "scaledScore": 2336,
+  "rank": 1,
+  "playerID": "EU6097f3f1d67f01619643a53a"
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "func": "updateDancercard",
+    "player": {
+      "country": "HK",
+      "name": "DANCER 402",
+      "id": "EU6097f3f1d67f01619643a53a",
+      "avatar": "376"
+    }
+  },
+  {
+    "func": "updateDancercard",
+    "player": {
+      "country": "HK",
+      "name": "DANCER 402",
+      "id": "EU6097f3f1d67f01619643a53a",
+      "ftueDatas": "{\"viewSaves\":[{\"ftueViewName\":\"PlaylistLimited\",\"trigCount\":1},{\"ftueViewName\":\"PlaylistSongsLimited\",\"trigCount\":3},{\"ftueViewName\":\"CoachLimited\",\"trigCount\":3},{\"ftueViewName\":\"EditDancercardLimited\",\"trigCount\":1},{\"ftueViewName\":\"DancercardLimited\",\"trigCount\":1},{\"ftueViewName\":\"SearchViewLimited\",\"trigCount\":1}],\"states\":[{\"state\":\"Welcome\",\"val\":\"1\"},{\"state\":\"Pairing\",\"val\":\"1\"},{\"state\":\"PlaylistLimit\",\"val\":\"1\"},{\"state\":\"PlaylistSongsLimit\",\"val\":\"1\"},{\"state\":\"CoachUnLock\",\"val\":\"1\"},{\"state\":\"NbPlayedMap\",\"val\":\"1\"},{\"state\":\"SongComplete\",\"val\":\"1\"},{\"state\":\"PlaylistUnlock\",\"val\":\"1\"},{\"state\":\"PlaylistSongsUnlock\",\"val\":\"1\"},{\"state\":\"SearchViewLimit\",\"val\":\"1\"}],\"ExistingUserFTUEDone\":false}",
+      "avatar": "376"
+    }
+  }
+]

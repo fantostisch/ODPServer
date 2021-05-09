@@ -1,0 +1,17 @@
+//List of 2 responses send after each other.
+[
+  {
+    "o": 1620572162729,
+    "r": 1620572162744,
+    "t": 1620572162744,
+    "d": 0,
+    "func": "sync"
+  },
+  {
+    "clockOffset": 6,
+    "latency": 36,
+    "func": "clientSyncCompleted",
+    "scoringWindowWidth": 1,
+    "serverTime": 1620572162765
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "tabName": "playlist",
+    "sender": "app",
+    "func": "tabRest"
+  },
+  {
+    "tabName": "playlist",
+    "sender": "app",
+    "func": "tabRest"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "func": "playerFeedBack",
+    "result": {
+      "rating": "bad",
+      "totalScore": 35
+    },
+    "achievements": {},
+    "player": "EU6097f3f1d67f01619643a53a",
+    "move": 6
+  },
+  {
+    "func": "playerFeedBack",
+    "result": {
+      "rating": "ok",
+      "totalScore": 533
+    },
+    "achievements": {},
+    "player": "EU6097f3f1d67f01619643a53a",
+    "move": 17
+  },
+  {
+    "func": "playerFeedBack",
+    "result": {
+      "rating": "good",
+      "totalScore": 562
+    },
+    "achievements": {},
+    "player": "EU6097f3f1d67f01619643a53a",
+    "move": 19
+  },
+  {
+    "func": "playerFeedBack",
+    "result": {
+      "rating": "perfect",
+      "totalScore": 1484
+    },
+    "achievements": {},
+    "player": "EU6097f3f1d67f01619643a53a",
+    "move": 39
+  },
+  {
+    "func": "playerFeedBack",
+    "result": {
+      "rating": "yeah",
+      "totalScore": 511
+    },
+    "achievements": {},
+    "player": "EU6097f3f1d67f01619643a53a",
+    "move": 16
+  }
+]

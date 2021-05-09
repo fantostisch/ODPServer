@@ -1,0 +1,8 @@
+{
+  "balance": 100,
+  "spentOffered": 100,
+  "spentPurchased": 0,
+  "token": "d0d67d9e788a48bce5404184bf8aa3db:236f9b168c0b0c96c860ea3b2d89a0afc7e5b9614ecff9ec0e15dea8529347f4",
+  "func": "virtualPayPerPlayPurchase",
+  "publicID": "EU6097f9e5d67f01619643a631"
+}

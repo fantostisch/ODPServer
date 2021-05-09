@@ -1,0 +1,62 @@
+//New Player
+[
+  {
+    "func": "playerJoined",
+    "newPlayer": {
+      "id": "EU6097f3f1d67f01619643a53a",
+      "name": "Dancer 401",
+      "avatar": 376,
+      "totalScore": 0,
+      "scaledScore": 0,
+      "timeLeft": 0,
+      "highscores": [],
+      "unlockedSongs": [],
+      "country": "ZZ",
+      "globalLevel": 1,
+      "levels": [],
+      "ftueDatas": "{\"viewSaves\":[{\"ftueViewName\":\"PlaylistLimited\",\"trigCount\":0},{\"ftueViewName\":\"PlaylistSongsLimited\",\"trigCount\":0},{\"ftueViewName\":\"CoachLimited\",\"trigCount\":0},{\"ftueViewName\":\"EditDancercardLimited\",\"trigCount\":0},{\"ftueViewName\":\"DancercardLimited\",\"trigCount\":0},{\"ftueViewName\":\"SearchViewLimited\",\"trigCount\":0}],\"states\":[{\"state\":\"Welcome\",\"val\":\"1\"}],\"ExistingUserFTUEDone\":false}",
+      "unlockedAvatars": [],
+      "configId": "5e2e6a4f7117a20d30339713",
+      "wallet": {
+        "balance": 200
+      },
+      "renewalDate": 0,
+      "expiration": 0,
+      "favorites": []
+    },
+    "isRoomVip": false,
+    "isPlayerVip": false
+  },
+  {
+    "newPlayer": {
+      "favorites": [],
+      "wallet": {
+        "balance": 100
+      },
+      "unlockedSongs": [],
+      "renewalDate": 0,
+      "globalLevel": 1,
+      "country": "HK",
+      "expiration": 0,
+      "scaledScore": 0,
+      "name": "DANCER 402",
+      "configId": "5e2e6a4f7117a20d30339713",
+      "totalScore": 2336,
+      "highscores": [
+        {
+          "song": "BreakFreeDLC",
+          "score": 2336
+        }
+      ],
+      "id": "EU6097f3f1d67f01619643a53a",
+      "levels": [],
+      "unlockedAvatars": [],
+      "timeLeft": 0,
+      "ftueDatas": "{\"viewSaves\":[{\"ftueViewName\":\"PlaylistLimited\",\"trigCount\":1},{\"ftueViewName\":\"PlaylistSongsLimited\",\"trigCount\":3},{\"ftueViewName\":\"CoachLimited\",\"trigCount\":3},{\"ftueViewName\":\"EditDancercardLimited\",\"trigCount\":1},{\"ftueViewName\":\"DancercardLimited\",\"trigCount\":1},{\"ftueViewName\":\"SearchViewLimited\",\"trigCount\":0}],\"states\":[{\"state\":\"Welcome\",\"val\":\"1\"},{\"state\":\"Pairing\",\"val\":\"1\"},{\"state\":\"PlaylistLimit\",\"val\":\"1\"},{\"state\":\"PlaylistSongsLimit\",\"val\":\"1\"},{\"state\":\"CoachUnLock\",\"val\":\"1\"},{\"state\":\"NbPlayedMap\",\"val\":\"1\"},{\"state\":\"SongComplete\",\"val\":\"1\"},{\"state\":\"PlaylistUnlock\",\"val\":\"1\"},{\"state\":\"PlaylistSongsUnlock\",\"val\":\"1\"}],\"ExistingUserFTUEDone\":false}",
+      "avatar": 376
+    },
+    "isRoomVip": false,
+    "func": "playerJoined",
+    "isPlayerVip": false
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "func": "results",
+  "superstarThreshold": 11000,
+  "megastarThreshold": 12000,
+  "players": [
+    {
+      "publicID": "EU6097f3f1d67f01619643a53a",
+      "scaledScore": 2336,
+      "achievements": {},
+      "coach": 0
+    }
+  ]
+}

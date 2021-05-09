@@ -1,0 +1,11 @@
+{
+  "func": "songStart",
+  "song": "BreakFreeDLC",
+  "playerColors": {
+    "EU6097f9e5d67f01619643a631": "blue"
+  },
+  "startTime": 1620572821400,
+  "mapFilter": "FTUE",
+  "mapFilterDefault": "FTUE",
+  "mapPos": -1
+}

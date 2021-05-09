@@ -1,0 +1,7 @@
+{
+  "func": "songLaunched",
+  "video": "https://hls.justdancenow.com/breakfreedlc_3feba62bcd374c58/3fd9cc481d339890.m3u8",
+  "cookieName": "hlscookie",
+  "cookieValue": "st=1620486413~exp=1621782413~acl=/breakfreedlc_3feba62bcd374c58/*~hmac=dccf9c71b90e6a22d6b2615c3dac3bd8",
+  "duration": 420000
+}

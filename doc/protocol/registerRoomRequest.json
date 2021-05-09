@@ -1,0 +1,28 @@
+{
+  "func": "registerRoom",
+  "device": {
+    "ua": "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0",
+    "browser": {
+      "name": "Firefox",
+      "version": "78.0",
+      "major": "78"
+    },
+    "engine": {
+      "name": "Gecko",
+      "version": "78.0"
+    },
+    "os": {
+      "name": "Windows",
+      "version": "10"
+    },
+    "device": {
+      "model": "AndroidTV"
+    },
+    "cpu": {}
+  },
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+  "lang": "en",
+  "timezoneOffset": 0,
+  "webSession": "wwd3zp9h9p3r6rny7b4jo",
+  "videoFormat": "hlsVideo"
+}

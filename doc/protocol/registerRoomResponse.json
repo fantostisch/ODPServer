@@ -1,0 +1,9 @@
+{
+  "func": "registerRoom",
+  "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAAAdCAAAAABz+DjTAAAAuklEQVR42mVSCRLEIAzi/59m20QOt1pnTFVCCMAO8lnv5ESA/z8D+83vE3Mu7iK8PyhAnyLv+T1lYC+kyQNCG+2L299syqyUZkwVIaYbCNOFznVxNair2YiCAYuWAfZuFRllRcSMHChNsrF1cxK1AdWWq9yDKfmQB1B1Iu+WRgd0J056lSo26lZ6E1cIvRPIWpacaWyoowfTGJaT4o16VuJFuc6IsrCz2soRFpfrPpqzla3S40nEZTbJD3bUmnQwPNPjAAAAAElFTkSuQmCC",
+  "roomID": 395,
+  "roomCookie": "s=395~hmac=c3f86187d9cf2f80353bae0927f2222b",
+  "screenCookie": "s=NAS11d3845e0-b0d2-11eb-9d11-ab2c53a78fa5~hmac=0e3aacde16414f4e77ef004bbc483327",
+  "api": "https://vir-prod-api.justdancenow.com/v1/",
+  "availableMapsNb": 614
+}

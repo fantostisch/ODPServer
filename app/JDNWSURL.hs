@@ -1,6 +1,5 @@
 module JDNWSURL (newJDNWSURL, JDNWSURL, host, pathAndParams, protocol, port, path) where
 
-import Data.HashSet ()
 import qualified Network.URL as URL
 
 data JDNWSURL = JDNWSURL {host :: String, pathAndParams :: String} deriving (Show)

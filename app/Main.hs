@@ -22,7 +22,6 @@ import Data.Function ((&))
 import Data.Functor (($>), (<&>))
 import Data.HashMap.Strict (fromList)
 import qualified Data.HashMap.Strict as HM
-import qualified Data.HashSet as HS
 import qualified Data.List as List
 import Data.Maybe (fromJust)
 import Data.Text (Text)
@@ -58,8 +57,6 @@ import Utils
 import WSURLData (WSURLData)
 import qualified WSURLData
 import qualified Wuss
-
-type WSHostsTVar = TVar (HS.HashSet String)
 
 main :: IO ()
 main = do

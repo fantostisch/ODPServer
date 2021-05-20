@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/12.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/20.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -66,5 +66,22 @@ packages:
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
 
+extra-deps:
+  - profunctors-5.6.2
+  - memory-0.16.0
+  - cryptonite-0.29
+
 ghc-options:
   "$everything": -haddock
+
+compiler: ghc-9.0.1
+
+compiler-check: match-exact
+
+setup-info:
+  ghc:
+    linux64-tinfo6:
+      9.0.1:
+        url: https://downloads.haskell.org/ghc/9.0.1/ghc-9.0.1-x86_64-deb10-linux.tar.xz
+        content-length: 215436964
+        sha1: b5bdbac29dfcb73e0d74002ac91b7b9cc2d72d1f

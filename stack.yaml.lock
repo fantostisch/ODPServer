@@ -3,11 +3,32 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: profunctors-5.6.2@sha256:4db306297d827cf65a32d9124d6f1a23105479ebb1988783006578bc5d4209da,2377
+    pantry-tree:
+      size: 1588
+      sha256: 5e640a3a4613c8850d19d322b4ec8444345deb0cf4ee020590da82e2d657be26
+  original:
+    hackage: profunctors-5.6.2
+- completed:
+    hackage: memory-0.16.0@sha256:3bf01f8267c0ee1745a1c0c4aa0dc311709801e950d605d90b5d1a26e2773e49,4895
+    pantry-tree:
+      size: 2436
+      sha256: 9bd98c34cb359b7f8cdc3ad900ec903461b4d785de7c03575f809980acc84073
+  original:
+    hackage: memory-0.16.0
+- completed:
+    hackage: cryptonite-0.29@sha256:147724f6a8e4394fcbd51bf52aba7a8b92d3fc8f42055cd6ca9486655e2ab614,18312
+    pantry-tree:
+      size: 23323
+      sha256: 087de3ed0552cfb1f84d03629b0f98c77aadc076b85bb5cb787f77c5e5dac136
+  original:
+    hackage: cryptonite-0.29
 snapshots:
 - completed:
-    size: 567669
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/12.yaml
-    sha256: facf6cac73b22a83ca955b580a98a7a09ed71f8f974c7a55d28e608c23e689a9
+    size: 585640
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/20.yaml
+    sha256: d88510fd34508e8a6c0e6545ba63bf716c6c2a8476040259bac115b1f533653c
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/12.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/20.yaml

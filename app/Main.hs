@@ -117,6 +117,9 @@ query request odpClientDataText = do
       ]
       (encode modifiedResponse)
 
+removePlayerFromList :: Text -> [Player] -> [Player]
+removePlayerFromList playerID = filter (\p -> Player.id p /= playerID)
+
 updatePlayers :: PlayerUpdate -> BS.ByteString -> [Player] -> Maybe [Player]
 updatePlayers (PlayerJoined (Just playerID)) message players =
   Just $
@@ -126,9 +129,9 @@ updatePlayers (PlayerJoined (Just playerID)) message players =
       } :
     players
 updatePlayers (PlayerLeft (Just playerID)) _ players =
-  Just $ filter (\p -> Player.id p /= playerID) players
+  Just $ removePlayerFromList playerID players
 updatePlayers (PlayerKicked (Just playerID)) _ players =
-  Just $ filter (\p -> Player.id p /= playerID) players
+  Just $ removePlayerFromList playerID players
 updatePlayers _ _ _ = Nothing
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()

@@ -246,7 +246,7 @@ createRecvChannelToHostThread conn recvChannel tRooms hostId = do
 sendInitialSate :: WS.Connection -> BS.ByteString -> TVar [Player] -> IO ()
 sendInitialSate conn registerRoomResponse tPlayers = do
   WS.sendTextData conn registerRoomResponse
-  players <- atomically $ TVar.readTVar tPlayers
+  players <- TVar.readTVarIO tPlayers
   mapM_ (WS.sendTextData conn . Player.playerJoined) players
 
 removeThreadFromFollowers :: TVar Rooms -> HostID -> IO ()
@@ -316,7 +316,7 @@ threadRunning threadID =
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
   let hostId = ODPClient.id host
-  savedRoom <- atomically (TVar.readTVar tr) <&> Rooms.lookup hostId
+  savedRoom <- TVar.readTVarIO tr <&> Rooms.lookup hostId
 
   running <- case savedRoom of
     Nothing -> pure False

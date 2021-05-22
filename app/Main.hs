@@ -189,7 +189,7 @@ createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers 
         roomMaybe <- atomically $ do
           rooms <- TVar.readTVar tRooms
           let roomMaybe = Rooms.lookup hostId rooms
-          TVar.modifyTVar tRooms (Rooms.delete hostId)
+          TVar.writeTVar tRooms (Rooms.delete hostId rooms)
           pure roomMaybe
         case roomMaybe of
           Nothing -> putStrLn "Warning: trying to delete non existing room"

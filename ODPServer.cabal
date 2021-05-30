@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: db0676000fd9b1a6190a8fb73e441703fefc654b611a3e43d7e6d03b7e201751
+-- hash: 7a0cead1f16bac2be2d7c7b6e77a8a96ba2da0f39ad8f917c0926ce823ec8f53
 
 name:           ODPServer
 version:        0.1.0.0
@@ -15,6 +15,7 @@ build-type:     Simple
 executable ODPServer
   main-is: Main.hs
   other-modules:
+      Characters
       Debug
       JDNProtocol
       JDNWSURL
@@ -38,7 +39,9 @@ executable ODPServer
     , either
     , http-conduit
     , http-types
+    , random
     , stm
+    , stringsearch
     , text
     , unordered-containers
     , url
@@ -54,6 +57,7 @@ test-suite ODPServer-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Characters
       Debug
       JDNProtocol
       JDNWSURL
@@ -82,7 +86,9 @@ test-suite ODPServer-test
     , hspec
     , http-conduit
     , http-types
+    , random
     , stm
+    , stringsearch
     , text
     , unordered-containers
     , url

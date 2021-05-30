@@ -4,19 +4,21 @@
 
 module Main where
 
+import qualified Characters
 import Control.Concurrent (MVar, ThreadId, forkFinally, killThread, myThreadId)
 import qualified Control.Concurrent.MVar as MVar
 import Control.Concurrent.STM (TVar, atomically, retry)
 import qualified Control.Concurrent.STM.TChan as TChan
 import qualified Control.Concurrent.STM.TVar as TVar
 import Control.Exception (try)
-import Control.Exception.Base (SomeException)
+import Control.Exception.Base (SomeException, throwIO)
 import Control.Monad (forever)
 import Data.Aeson (Object, eitherDecode, encode)
 import Data.Aeson.Types (Value (..), parseMaybe, (.:))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Search as BSS
 import Data.Either.Combinators (mapLeft)
 import Data.Function ((&))
 import Data.Functor (($>), (<&>))
@@ -25,7 +27,9 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.List as List
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8')
+import qualified Data.Text as Text
+import Data.Text.Encoding (decodeUtf8', encodeUtf8)
+import qualified Data.Tuple as Tuple
 import Data.Void (Void, absurd)
 import Debug
 import GHC.Conc (ThreadStatus (..))
@@ -53,6 +57,7 @@ import Room (ODPChannel)
 import qualified Room
 import Rooms (Rooms)
 import qualified Rooms
+import System.Random.Stateful
 import Utils
 import WSURLData (WSURLData)
 import qualified WSURLData
@@ -136,10 +141,16 @@ updatePlayers _ _ _ = Nothing
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel tPlayers conn = do
+  replaceIDsTVar <- atomically $ TVar.newTVar []
+
+  let replaceInMessage = List.foldl' (\m (o, r) -> B.toStrict (BSS.replace o r m))
+
   sendingToJDNThread <-
     forkFinally
       ( forever $ do
-          msg <- atomically $ TChan.readTChan sendChannel
+          originalMsg <- atomically $ TChan.readTChan sendChannel
+          replaceIDs <- TVar.readTVarIO replaceIDsTVar <&> (<&> Tuple.swap)
+          let msg = replaceInMessage originalMsg replaceIDs
           debug $ putStrLn $ "Sending message to JDN: " ++ show msg
           WS.sendTextData conn msg
       )
@@ -151,11 +162,31 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
   err <-
     ( try
         ( forever $ do
-            msg <- WS.receiveData conn
-            _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show msg
+            let removeIDFromList id = atomically $ TVar.modifyTVar replaceIDsTVar (List.filter (\(o, _) -> o /= encodeUtf8 id))
+            originalMsg <- WS.receiveData conn
+            _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show originalMsg
+            let playerUpdate = JDNProtocol.parsePlayerUpdate originalMsg
+            case playerUpdate of
+              Just (PlayerJoined (Just originalID)) -> do
+                let randomCharacters = Characters.aToZLowerUpperNumeric
+                randomGen <- newStdGen
+                let replaceID =
+                      List.unfoldr (Just . uniformR (0, Text.length randomCharacters - 1)) randomGen
+                        & take (Text.length originalID)
+                        <&> Text.index randomCharacters
+                        & C.pack
+                atomically $ TVar.modifyTVar replaceIDsTVar (List.insert (encodeUtf8 originalID, replaceID))
+              Just (PlayerJoined Nothing) -> throwIO $ JDNCommunicationError "Malformed playerJoined message"
+              _ -> pure ()
+            replaceIDs <- TVar.readTVarIO replaceIDsTVar
+            let msg = replaceInMessage originalMsg replaceIDs
             --todo: if no one reads these messages they will pile up in memory
             atomically $ TChan.writeTChan receiveChannel msg
-            case JDNProtocol.parsePlayerUpdate msg of
+            case playerUpdate of
+              Just (PlayerLeft (Just originalID)) -> removeIDFromList originalID
+              Just (PlayerKicked (Just originalID)) -> removeIDFromList originalID
+              _ -> pure ()
+            case playerUpdate of
               Just f -> atomically $ do
                 room <- TVar.readTVar tPlayers
                 case updatePlayers f msg room of

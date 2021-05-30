@@ -1,5 +1,7 @@
 module JDNWSURL (newJDNWSURL, JDNWSURL, host, pathAndParams, protocol, port, path) where
 
+import qualified Characters
+import qualified Data.Text as Text
 import qualified Network.URL as URL
 
 data JDNWSURL = JDNWSURL {host :: String, pathAndParams :: String} deriving (Show)
@@ -22,13 +24,10 @@ ireHost = "ire-prod-drs.justdancenow.com"
 locationLength :: Int
 locationLength = length "ire"
 
-allowedLocationCharacters :: [Char]
-allowedLocationCharacters = "abcdefghijklmnopqrstuvwxyz"
-
 isValidJDNWSHost :: String -> Bool
 isValidJDNWSHost url =
   let (location, remaining) = splitAt locationLength url
-      correctLocation = all (`elem` allowedLocationCharacters) location
+      correctLocation = all (`elem` Text.unpack Characters.aTozLower) location
       correctRemaining = remaining == drop locationLength ireHost
    in correctRemaining && correctLocation
 

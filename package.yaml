@@ -9,7 +9,9 @@ dependencies:
   - either
   - http-conduit
   - http-types
+  - random
   - stm
+  - stringsearch
   - text
   - unordered-containers
   - url

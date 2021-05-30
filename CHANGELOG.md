@@ -1,10 +1,17 @@
 # Changelog for Online Dance Party Server
 
+## [1.2.2]
+
+* Hide DCID of players from web clients.
+
 ## [1.2.1]
+
 * Allow locations with an `x`.
 
 ## [1.2.0]
-* Allow specific websocket urls instead of only the ones the server receives from JDN, necessary to fix
+
+* Allow specific websocket urls instead of only the ones the server receives from JDN, necessary to
+  fix
   [dance room does not exist error](https://github.com/fantostisch/OnlineDanceParty/issues/1).
 
 ## [1.1.1]

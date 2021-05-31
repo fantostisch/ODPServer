@@ -27,8 +27,8 @@ packages:
     hackage: cryptonite-0.29
 snapshots:
 - completed:
-    size: 585640
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/20.yaml
-    sha256: d88510fd34508e8a6c0e6545ba63bf716c6c2a8476040259bac115b1f533653c
+    size: 586886
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/28.yaml
+    sha256: 673ae9b7dd401bb919e26fc67eceff525d7330497b8de6f840bc0e13404b854c
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/20.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/28.yaml

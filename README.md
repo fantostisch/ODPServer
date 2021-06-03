@@ -34,7 +34,7 @@ stack build --fast --file-watch
 Running:
 
 ```sh
-stack run
+stack build --fast && stack exec ODPServer
 ```
 
 Running with stack traces:

@@ -13,6 +13,37 @@ jobs:
       - name: Source code formatting check
         uses: mrkkrp/ormolu-action@v1
 
+      # Cache setup based on https://github.com/xmonad/xmonad/blob/6a7eb85e84ddc2091706fbce5ff293e859481e51/.github/workflows/stack.yml
+      - name: Refresh caches once a month
+        id: cache-date
+        # GitHub Actions writes caches on the first miss and then never updates them again;
+        # force updating the cache at least once a month
+        run: |
+          echo "::set-output name=date::$(date +%Y-%m)"
+      - name: Cache Haskell package metadata
+        uses: actions/cache@v2
+        with:
+          path: ~/.stack/pantry
+          key: stack-pantry-${{ runner.os }}-${{ steps.cache-date.outputs.date }}
+          restore-keys: |
+            stack-pantry-${{ runner.os }}-
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.stack/*
+            !~/.stack/pantry
+          key: stack-${{ runner.os }}-${{ matrix.resolver }}-${{ steps.cache-date.outputs.date }}-${{ hashFiles('stack.yaml') }}-${{ hashFiles('*.cabal') }}
+          restore-keys: |
+            stack-${{ runner.os }}-${{ steps.cache-date.outputs.date }}-${{ hashFiles('stack.yaml') }}-
+            stack-${{ runner.os }}-${{ steps.cache-date.outputs.date }}-
+            stack-${{ runner.os }}-
+      - name: Update hackage index
+        # always update index to prevent the shared ~/.stack/pantry cache from being empty
+        run: |
+          set -ex
+          stack update
+
       - name: Check
         run: |
           cp doc/Settings.example.hs app/Settings.hs

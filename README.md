@@ -49,6 +49,20 @@ stack run --profile -- +RTS -xc -RTS
 stack test
 ```
 
+### Development setup
+
+Recommended IDE is [IntelliJ IDEA](https://www.jetbrains.com/idea/)
+with [IntelliJ-Haskell](https://plugins.jetbrains.com/plugin/8258-intellij-haskell). Alternative
+is [VSCodium](https://vscodium.com/)
+with [Haskell Language Server](https://marketplace.visualstudio.com/items?itemName=haskell.haskell).
+
+If IntelliSense breaks because the project does not compile, add some `undefined`'s to let the
+project compile.
+
+To view library documentation run:
+`stack --open haddock`. If this command fails because the project does not compile,
+use `stack --open haddock --only-dependencies`.
+
 ### Formatting
 
 Please format all code using [ormolu](https://github.com/tweag/ormolu).

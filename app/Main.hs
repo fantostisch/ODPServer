@@ -26,6 +26,7 @@ import Data.HashMap.Strict (fromList)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List as List
 import Data.Maybe (fromJust)
+import Data.String (fromString)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
@@ -70,7 +71,7 @@ main = do
   putStrLn $ "Starting on http://" ++ host ++ ":" ++ show port
   state <- atomically $ TVar.newTVar Rooms.new
   Warp.runSettings
-    (Warp.setHost "localhost" {- todo -} $ Warp.setPort port Warp.defaultSettings)
+    (Warp.setHost (fromString host) $ Warp.setPort port Warp.defaultSettings)
     $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state) httpApp
 
 httpApp :: Wai.Application

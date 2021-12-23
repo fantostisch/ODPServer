@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM debian:bookworm-slim
 
 LABEL Description="Image for Online Dance Party Server"
 
@@ -12,7 +12,7 @@ COPY ${dist_dir}/build/ODPServer/ODPServer ${install_dir}
 
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install -y ca-certificates
+RUN apt-get install -y ca-certificates libnuma1
 
 WORKDIR ${install_dir}
 

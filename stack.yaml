@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/5/28.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/12/22.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -67,21 +67,35 @@ packages:
 # compiler-check: newer-minor
 
 extra-deps:
-  - profunctors-5.6.2
-  - memory-0.16.0
-  - cryptonite-0.29
+  - git: https://github.com/TomMD/foundation
+    commit: 0bb195e1fea06d144dafc5af9a0ff79af0a5f4a0
+    subdirs:
+      - basement
+  - git: https://github.com/tfausak/hs-memory
+    commit: 3cf661a8a9a8ac028df77daa88e8d65c55a3347a
+  - git: https://github.com/josephcsible/cryptonite
+    commit: 3b081e3ad027b0550fc87f171dffecbb20dedafe
+  - base-compat-0.12.1
+  - base-compat-batteries-0.12.1
+  - attoparsec-0.14.3
+  - aeson-2.0.2.0
+
+flags:
+  aeson:
+    # Fixes DOS vulnerability, see https://github.com/haskell/aeson/issues/864
+    ordered-keymap: true
 
 ghc-options:
   "$everything": -haddock
 
-compiler: ghc-9.0.1
+compiler: ghc-9.2.1
 
 compiler-check: match-exact
 
 setup-info:
   ghc:
     linux64-tinfo6:
-      9.0.1:
-        url: https://downloads.haskell.org/ghc/9.0.1/ghc-9.0.1-x86_64-deb10-linux.tar.xz
-        content-length: 215436964
-        sha1: b5bdbac29dfcb73e0d74002ac91b7b9cc2d72d1f
+      9.2.1:
+        url: https://downloads.haskell.org/ghc/9.2.1/ghc-9.2.1-x86_64-deb10-linux.tar.xz
+        content-length: 242489420
+        sha1: 83696057f6a22aeb513e8ef912fdb509e52261e4

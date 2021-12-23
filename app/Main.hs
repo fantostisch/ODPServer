@@ -14,6 +14,8 @@ import Control.Exception (try)
 import Control.Exception.Base (SomeException, throwIO)
 import Control.Monad (forever)
 import Data.Aeson (Object, eitherDecode, encode)
+import qualified Data.Aeson.Key as AKey
+import qualified Data.Aeson.KeyMap as KM
 import Data.Aeson.Types (Value (..), parseMaybe, (.:))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
@@ -22,9 +24,8 @@ import qualified Data.ByteString.Search as BSS
 import Data.Either.Combinators (mapLeft)
 import Data.Function ((&))
 import Data.Functor (($>), (<&>))
-import Data.HashMap.Strict (fromList)
-import qualified Data.HashMap.Strict as HM
 import qualified Data.List as List
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
 import Data.String (fromString)
 import Data.Text (Text)
@@ -84,7 +85,7 @@ httpApp request respond = do
     _ -> pure $ responseLBS status404 [] "Not found"
   respond response
 
-getJSONString :: Text -> Object -> Maybe Text
+getJSONString :: AKey.Key -> Object -> Maybe Text
 getJSONString key json = flip parseMaybe json $ \obj -> do
   obj .: key
 
@@ -100,12 +101,12 @@ query request odpClientDataText = do
   response <- httpJSON "https://justdancenow.com/query" :: IO (Network.HTTP.Simple.Response Object)
   let responseBody = response & getResponseBody
 
-  let wsURLKey = "wsUrl"
+  let wsURLKey = AKey.fromText "wsUrl"
   wsURL <- responseBody & getJSONString wsURLKey & orElseThrowMaybe (JDNCommunicationError "Could not get wsUrl")
 
   let wsURLData =
         Object
-          ( fromList
+          ( KM.fromList
               [ ("originalWSURL", String wsURL),
                 ("odpClient", Object odpClientData)
               ]
@@ -113,7 +114,7 @@ query request odpClientDataText = do
 
   host <- request & requestHeaderHost & orElseThrowMaybe (InvalidRequest "No host header")
   url <- "wss://" <> host <> "/" <> B.toStrict (encode wsURLData) & decodeUtf8' & orElseThrowEither
-  let modifiedResponse = responseBody & HM.insert wsURLKey (String url)
+  let modifiedResponse = responseBody & KM.insert wsURLKey (String url)
 
   pure $
     responseLBS
@@ -309,7 +310,7 @@ handleFollower follower conn tRooms = do
             originalMsg <- atomically $ TChan.readTChan chan
             --todo: do this calculation once, not for every follower
             let msg = case JDNProtocol.toJSON originalMsg of
-                  (prefix, Just o) -> BS.append prefix (B.toStrict $ encode (HM.adjust (const "app") "sender" o))
+                  (prefix, Just o) -> BS.append prefix (B.toStrict $ encode (Map.adjust (const "app") "sender" (KM.toMap o)))
                   (_, Nothing) -> originalMsg
             case msg of
               _ | msg == JDNProtocol.ping -> pure ()

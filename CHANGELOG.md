@@ -1,5 +1,9 @@
 # Changelog for Online Dance Party Server
 
+## [1.2.3]
+
+* Fixes possible DOS vulnerability, see [Aeson issue](https://github.com/haskell/aeson/issues/864).
+
 ## [1.2.2]
 
 * Hide DCID of players from web clients.

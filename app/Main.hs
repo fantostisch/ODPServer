@@ -170,13 +170,8 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
             let playerUpdate = JDNProtocol.parsePlayerUpdate originalMsg
             case playerUpdate of
               Just (PlayerJoined (Just originalID)) -> do
-                let randomCharacters = Characters.aToZLowerUpperNumeric
                 randomGen <- newStdGen
-                let replaceID =
-                      List.unfoldr (Just . uniformR (0, Text.length randomCharacters - 1)) randomGen
-                        & take (Text.length originalID)
-                        <&> Text.index randomCharacters
-                        & C.pack
+                let replaceID = C.pack $ randomString randomGen Characters.aToZLowerUpperNumeric (Text.length originalID)
                 atomically $ TVar.modifyTVar replaceIDsTVar (List.insert (encodeUtf8 originalID, replaceID))
               Just (PlayerJoined Nothing) -> throwIO $ JDNCommunicationError "Malformed playerJoined message"
               _ -> pure ()

@@ -158,7 +158,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
       )
       ( \(result :: Either SomeException Void) -> do
           debug $ putStrLn $ "Sending jdnClient ended: " ++ show result
-          --todo: kill sending thread, if no one reads sendChannel the messages will pile up in memory
+          -- todo: kill sending thread, if no one reads sendChannel the messages will pile up in memory
       )
 
   err <-
@@ -177,7 +177,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
               _ -> pure ()
             replaceIDs <- TVar.readTVarIO replaceIDsTVar
             let msg = replaceInMessage originalMsg replaceIDs
-            --todo: if no one reads these messages they will pile up in memory
+            -- todo: if no one reads these messages they will pile up in memory
             atomically $ TChan.writeTChan receiveChannel msg
             case playerUpdate of
               Just (PlayerLeft (Just originalID)) -> removeIDFromList originalID
@@ -188,7 +188,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
                 room <- TVar.readTVar tPlayers
                 case updatePlayers f msg room of
                   Just updatedRoom -> TVar.writeTVar tPlayers updatedRoom
-                  Nothing -> pure () --something is wrong, todo: log this
+                  Nothing -> pure () -- something is wrong, todo: log this
               Nothing -> pure ()
         ) ::
         IO (Either SomeException Void)
@@ -198,7 +198,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
   debug $ putStrLn ("Receiving jdnClient ended: " ++ show err)
   killThread sendingToJDNThread
 
---todo: kill this thread and remove room when there are no hosts and no followers
+-- todo: kill this thread and remove room when there are no hosts and no followers
 createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar Rooms -> HostID -> TVar [Player] -> IO ThreadId
 createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers =
   forkFinally
@@ -282,7 +282,7 @@ removeThreadFromFollowers tRooms hostId = do
   threadId <- myThreadId
   atomically $ TVar.modifyTVar tRooms (Rooms.adjust (\r -> r {Room.followerThreads = List.delete threadId (Room.followerThreads r)}) hostId)
 
---todo: warn user if there is no host
+-- todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
 handleFollower follower conn tRooms = do
   let hostId = ODPClient.hostToFollow follower
@@ -303,7 +303,7 @@ handleFollower follower conn tRooms = do
           _ <- sendInitialSate conn registerRoomResponse (Room.players room)
           forever $ do
             originalMsg <- atomically $ TChan.readTChan chan
-            --todo: do this calculation once, not for every follower
+            -- todo: do this calculation once, not for every follower
             let msg = case JDNProtocol.toJSON originalMsg of
                   (prefix, Just o) -> BS.append prefix (B.toStrict $ encode (Map.adjust (const "app") "sender" (KM.toMap o)))
                   (_, Nothing) -> originalMsg
@@ -411,7 +411,7 @@ handleHost host originalWSURL wsConn tr = do
                         { Room.sendChannel = sendChannel,
                           Room.receiveChannel = receiveChannel,
                           Room.hostThread = hostSendingThread,
-                          Room.jdnThread = fromJust jdnThreadMaybe, --todo: do not use fromJust
+                          Room.jdnThread = fromJust jdnThreadMaybe, -- todo: do not use fromJust
                           Room.registerRoomResponse = registerRoomResponse,
                           Room.players = tPlayers,
                           Room.followerThreads = [hostReceivingThread]

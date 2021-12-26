@@ -35,7 +35,7 @@ webSocketConnectionOptions =
     { WS.connectionCompressionOptions = WS.PermessageDeflateCompression WS.defaultPermessageDeflate
     }
 
---todo: use protocol specified by client instead of hardcoding protocol
+-- todo: use protocol specified by client instead of hardcoding protocol
 secWebSocketProtocol :: BS.ByteString
 secWebSocketProtocol = "screen.justdancenow.com"
 
@@ -51,7 +51,7 @@ pong = prefixMessage "{\"func\":\"pong\"}"
 toJSON :: C.ByteString -> (C.ByteString, Maybe Aeson.Object)
 toJSON msg = (prefix, Aeson.decode $ B.fromStrict msgNoPrefix)
   where
-    prefixLength = length ("002e" :: String) --todo: do not specify String (also on other places)
+    prefixLength = length ("002e" :: String) -- todo: do not specify String (also on other places)
     msgNoPrefix = BS.drop prefixLength msg
     prefix = BS.take prefixLength msg
 
@@ -69,8 +69,8 @@ parsePlayerUpdate msg = case extractFunctionString msg of
                 newPlayer .: "id"
             )
         )
-  "playerLeft" -> Just $ PlayerLeft (parseJSON (.: "playerID")) --todo: what is the difference between playerID and controller?
-  "playerKicked" -> Just $ PlayerKicked (parseJSON (.: "playerID")) --todo: what is the difference between playerID and controller?
+  "playerLeft" -> Just $ PlayerLeft (parseJSON (.: "playerID")) -- todo: what is the difference between playerID and controller?
+  "playerKicked" -> Just $ PlayerKicked (parseJSON (.: "playerID")) -- todo: what is the difference between playerID and controller?
   _ -> Nothing
   where
     parseJSON x =

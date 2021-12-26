@@ -65,7 +65,17 @@ use `stack --open haddock --only-dependencies`.
 
 ### Formatting
 
-Please format all code using [ormolu](https://github.com/tweag/ormolu).
+Please format all code using [ormolu](https://github.com/tweag/ormolu) and keep lines below 90 characters.
+
+To install ormolu, run in this directory:
+```bash
+stack install ormolu-0.4.0.0
+```
+
+To run ormolu on all source files:
+```bash
+ormolu -m inplace app/*.hs test/*.hs
+```
 
 ## Documentation
 

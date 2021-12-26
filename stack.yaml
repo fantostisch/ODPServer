@@ -79,6 +79,8 @@ extra-deps:
   - base-compat-batteries-0.12.1
   - attoparsec-0.14.3
   - aeson-2.0.2.0
+  # Necessary for 'stack install ormolu-0.4.0.0'
+  - ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
 
 flags:
   aeson:

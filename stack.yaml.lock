@@ -67,6 +67,13 @@ packages:
       sha256: 5303edc2f9516c7999c21fbfb218ad180dd91c2ceea570f8bc54818ea9ec1692
   original:
     hackage: aeson-2.0.2.0
+- completed:
+    hackage: ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
+    pantry-tree:
+      size: 27578
+      sha256: 445b7dd1908b8187dfdab87673a68f1ca42e2bcfd7dd68f04a3ad91a2215e3e2
+  original:
+    hackage: ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
 snapshots:
 - completed:
     size: 616062

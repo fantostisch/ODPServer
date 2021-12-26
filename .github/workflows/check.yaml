@@ -46,7 +46,7 @@ jobs:
 
       - name: Check
         run: |
-          sudo apt update
+          sudo apt-get update
           sudo apt-get -y install libnuma-dev
           cp doc/Settings.example.hs app/Settings.hs
           stack build --fast

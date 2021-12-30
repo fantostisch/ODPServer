@@ -1,6 +1,6 @@
 name: Check
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,9 +9,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Source code formatting check
-        uses: mrkkrp/ormolu-action@v1
 
       # Cache setup based on https://github.com/xmonad/xmonad/blob/6a7eb85e84ddc2091706fbce5ff293e859481e51/.github/workflows/stack.yml
       - name: Refresh caches once a month
@@ -47,7 +44,7 @@ jobs:
       - name: Check
         run: |
           sudo apt-get update
-          sudo apt-get -y install libnuma-dev
+          sudo apt-get -y install make libnuma-dev
           cp doc/Settings.example.hs app/Settings.hs
-          stack build --fast
-          stack test
+          stack install ormolu-0.4.0.0
+          make check

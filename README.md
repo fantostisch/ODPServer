@@ -28,25 +28,25 @@ cp doc/Settings.example.hs app/Settings.hs
 Build on every change:
 
 ```sh
-stack build --fast --file-watch
+make watch
 ```
 
 Running:
 
 ```sh
-stack build --fast && stack exec ODPServer
+make run
 ```
 
 Running with stack traces:
 
 ```sh
-stack run --profile -- +RTS -xc -RTS
+make debug
 ```
 
 ### Testing
 
 ```sh
-stack test
+make test
 ```
 
 ### Development setup
@@ -74,7 +74,7 @@ stack install ormolu-0.4.0.0
 
 To run ormolu on all source files:
 ```bash
-ormolu -m inplace app/*.hs test/*.hs
+make format
 ```
 
 ## Documentation

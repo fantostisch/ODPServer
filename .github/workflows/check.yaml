@@ -44,7 +44,7 @@ jobs:
       - name: Check
         run: |
           sudo apt-get update
-          sudo apt-get -y install make libnuma-dev
+          sudo apt-get -y install make
           cp doc/Settings.example.hs app/Settings.hs
           stack install ormolu-0.4.0.0
           make check

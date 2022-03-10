@@ -5,19 +5,6 @@
 
 packages:
 - completed:
-    subdir: basement
-    name: basement
-    version: 0.0.12
-    git: https://github.com/TomMD/foundation
-    pantry-tree:
-      size: 5928
-      sha256: 5f1af5468f8271a286b006226858c0ab76bb2447e9cbe7e7cbadffeab4a59fd4
-    commit: 0bb195e1fea06d144dafc5af9a0ff79af0a5f4a0
-  original:
-    subdir: basement
-    git: https://github.com/TomMD/foundation
-    commit: 0bb195e1fea06d144dafc5af9a0ff79af0a5f4a0
-- completed:
     name: memory
     version: 0.16.0
     git: https://github.com/tfausak/hs-memory
@@ -34,11 +21,11 @@ packages:
     git: https://github.com/josephcsible/cryptonite
     pantry-tree:
       size: 24851
-      sha256: 139a1368d5e64f673ce60e5ae008e61fd9fed7f1d3acc9cd9e0bc6cca8278cff
-    commit: 3b081e3ad027b0550fc87f171dffecbb20dedafe
+      sha256: ef2326fb94614f6c1a6cff56d244aca838c78fd360d0de3bbb0a0c5d488fa39e
+    commit: 0d04e90dc33b6aeaf8a5686921d6999599429fb0
   original:
     git: https://github.com/josephcsible/cryptonite
-    commit: 3b081e3ad027b0550fc87f171dffecbb20dedafe
+    commit: 0d04e90dc33b6aeaf8a5686921d6999599429fb0
 - completed:
     hackage: base-compat-0.12.1@sha256:20e50848d9dfee1523fafe8950060b04fae43d402c15553da5c7cacd116f7846,6960
     pantry-tree:
@@ -54,30 +41,16 @@ packages:
   original:
     hackage: base-compat-batteries-0.12.1
 - completed:
-    hackage: attoparsec-0.14.3@sha256:b65d94fa4ac2854e396d29532915c5fd6c48d000fea8b84f3c0d9c8430e36dc4,6183
-    pantry-tree:
-      size: 5305
-      sha256: 0a15e87509cc67315b0531cac10baaaad5eef464c0bb5175d8ecbdcd7365e056
-  original:
-    hackage: attoparsec-0.14.3
-- completed:
-    hackage: aeson-2.0.2.0@sha256:bb41f39762d6f755431097ce0fa88d817108036e7f1c1ec06fd5990230860c76,6343
-    pantry-tree:
-      size: 37910
-      sha256: 5303edc2f9516c7999c21fbfb218ad180dd91c2ceea570f8bc54818ea9ec1692
-  original:
-    hackage: aeson-2.0.2.0
-- completed:
-    hackage: ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
+    hackage: ghc-lib-parser-9.2.2.20220307@sha256:384755a514a42fe1615862ff6ef5c995a9ed71904360b4b212f9526f80fb214c,12705
     pantry-tree:
       size: 27578
-      sha256: 445b7dd1908b8187dfdab87673a68f1ca42e2bcfd7dd68f04a3ad91a2215e3e2
+      sha256: 1e7884111d2ef9d7132719f9d04a16873a9c479100f2be310e5880805d9787dc
   original:
-    hackage: ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
+    hackage: ghc-lib-parser-9.2.2.20220307
 snapshots:
 - completed:
-    size: 616062
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/12/22.yaml
-    sha256: a7576faf831c013017375897209db850f89d0c8fe1676ddf66e7fab29d97a12d
+    size: 610848
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/3/10.yaml
+    sha256: 49f3372b4036ef56bad05fa07ae81401f49e762f25f2d5db771b15b0a4a03fa1
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/12/22.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/3/10.yaml

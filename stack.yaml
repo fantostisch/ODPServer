@@ -18,7 +18,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/12/22.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/3/10.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -67,20 +67,14 @@ packages:
 # compiler-check: newer-minor
 
 extra-deps:
-  - git: https://github.com/TomMD/foundation
-    commit: 0bb195e1fea06d144dafc5af9a0ff79af0a5f4a0
-    subdirs:
-      - basement
   - git: https://github.com/tfausak/hs-memory
     commit: 3cf661a8a9a8ac028df77daa88e8d65c55a3347a
   - git: https://github.com/josephcsible/cryptonite
-    commit: 3b081e3ad027b0550fc87f171dffecbb20dedafe
+    commit: 0d04e90dc33b6aeaf8a5686921d6999599429fb0
   - base-compat-0.12.1
   - base-compat-batteries-0.12.1
-  - attoparsec-0.14.3
-  - aeson-2.0.2.0
   # Necessary for 'stack install ormolu-0.4.0.0'
-  - ghc-lib-parser-9.2.1.20211101@sha256:c7f5649391acb4ceec6770acce3b77dea8aad3fd442b2a32a1d0dbaede080c0b,12705
+  - ghc-lib-parser-9.2.2.20220307
 
 flags:
   aeson:
@@ -90,14 +84,14 @@ flags:
 ghc-options:
   "$everything": -haddock
 
-compiler: ghc-9.2.1
+compiler: ghc-9.2.2
 
 compiler-check: match-exact
 
 setup-info:
   ghc:
     linux64-tinfo6:
-      9.2.1:
-        url: https://downloads.haskell.org/ghc/9.2.1/ghc-9.2.1-x86_64-deb10-linux.tar.xz
-        content-length: 242489420
-        sha1: 83696057f6a22aeb513e8ef912fdb509e52261e4
+      9.2.2:
+        url: https://downloads.haskell.org/ghc/9.2.2/ghc-9.2.2-x86_64-deb10-linux.tar.xz
+        content-length: 244759252
+        sha1: 960dede72efd144abc3beaeea79c46b2e9dd04cf

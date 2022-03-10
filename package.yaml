@@ -28,7 +28,6 @@ executables:
     source-dirs: app
     ghc-options:
       - -Wall
-      - -Wincomplete-uni-patterns
       - -Wpartial-fields
       - -threaded
       - -rtsopts

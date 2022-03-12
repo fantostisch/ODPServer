@@ -17,6 +17,8 @@ relayed through this server.
 
 ## Development
 
+[Install The Haskell Tool Stack](https://haskellstack.org)
+
 ### Setup
 
 ```sh

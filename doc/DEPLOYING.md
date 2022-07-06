@@ -46,6 +46,6 @@ the [static-build-remove-docker branch](https://github.com/fantostisch/ODPServer
 but this results in a segfault. Other possible solutions:
 
 * [Dynamically link to an older version of glibc](https://geekingfrog.com/blog/post/custom-glibc-haskell-binary).
-* Compile on the server
 * Compile inside a docker container
 * Nix?
+* [Use chroot](https://wiki.debian.org/chroot)

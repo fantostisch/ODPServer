@@ -73,6 +73,4 @@ parsePlayerUpdate msg = case extractFunctionString msg of
   "playerKicked" -> Just $ PlayerKicked (parseJSON (.: "playerID")) -- todo: what is the difference between playerID and controller?
   _ -> Nothing
   where
-    parseJSON x =
-      toJSON msg & snd
-        >>= parseMaybe x
+    parseJSON x = toJSON msg & snd >>= parseMaybe x

@@ -71,7 +71,7 @@ Please format all code using [ormolu](https://github.com/tweag/ormolu) and keep 
 
 To install ormolu, run in this directory:
 ```bash
-stack install ormolu-0.4.0.0
+stack install ormolu-0.5.0.1
 ```
 
 To run ormolu on all source files:

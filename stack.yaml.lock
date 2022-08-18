@@ -3,54 +3,11 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    name: memory
-    version: 0.16.0
-    git: https://github.com/tfausak/hs-memory
-    pantry-tree:
-      size: 2819
-      sha256: 0edf661bab420ffb43689afbb649cb69d49fc817c0f20007767da9b60cb6657e
-    commit: 3cf661a8a9a8ac028df77daa88e8d65c55a3347a
-  original:
-    git: https://github.com/tfausak/hs-memory
-    commit: 3cf661a8a9a8ac028df77daa88e8d65c55a3347a
-- completed:
-    name: cryptonite
-    version: '0.29'
-    git: https://github.com/josephcsible/cryptonite
-    pantry-tree:
-      size: 24851
-      sha256: ef2326fb94614f6c1a6cff56d244aca838c78fd360d0de3bbb0a0c5d488fa39e
-    commit: 0d04e90dc33b6aeaf8a5686921d6999599429fb0
-  original:
-    git: https://github.com/josephcsible/cryptonite
-    commit: 0d04e90dc33b6aeaf8a5686921d6999599429fb0
-- completed:
-    hackage: base-compat-0.12.1@sha256:20e50848d9dfee1523fafe8950060b04fae43d402c15553da5c7cacd116f7846,6960
-    pantry-tree:
-      size: 9038
-      sha256: 2f2c14615443954f117613d77835234b598718e611fb4cf4522e01980bf1bcbd
-  original:
-    hackage: base-compat-0.12.1
-- completed:
-    hackage: base-compat-batteries-0.12.1@sha256:ee819d7570b2fda1012d29db945a1778c388ef8c0c282e45c8fe4eae7616a25c,8891
-    pantry-tree:
-      size: 11169
-      sha256: 64edb51a988b4a362f0ba4172ad4e3d140ee69129dd68a4d08004fe506cc09ae
-  original:
-    hackage: base-compat-batteries-0.12.1
-- completed:
-    hackage: ghc-lib-parser-9.2.2.20220307@sha256:384755a514a42fe1615862ff6ef5c995a9ed71904360b4b212f9526f80fb214c,12705
-    pantry-tree:
-      size: 27578
-      sha256: 1e7884111d2ef9d7132719f9d04a16873a9c479100f2be310e5880805d9787dc
-  original:
-    hackage: ghc-lib-parser-9.2.2.20220307
+packages: []
 snapshots:
 - completed:
-    size: 610848
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/3/10.yaml
-    sha256: 49f3372b4036ef56bad05fa07ae81401f49e762f25f2d5db771b15b0a4a03fa1
+    size: 630639
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/8/17.yaml
+    sha256: 473dd7dfec672d63927553cc88b3446e999969840f2bb2e9b050a96fecdf43be
   original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/3/10.yaml
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/8/17.yaml

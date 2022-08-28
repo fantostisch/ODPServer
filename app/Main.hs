@@ -164,7 +164,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
   err <-
     ( try
         ( forever $ do
-            let removeIDFromList id = atomically $ TVar.modifyTVar replaceIDsTVar (List.filter (\(o, _) -> o /= encodeUtf8 id))
+            let removeIDFromList playerID = atomically $ TVar.modifyTVar replaceIDsTVar (List.filter (\(o, _) -> o /= encodeUtf8 playerID))
             originalMsg <- WS.receiveData conn
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show originalMsg
             let playerUpdate = JDNProtocol.parsePlayerUpdate originalMsg
@@ -323,8 +323,8 @@ handleFollower follower conn tRooms = do
     let maybeRoom = Rooms.lookup hostId rooms
     case maybeRoom of
       Nothing -> pure False
-      Just room ->
-        TVar.writeTVar tRooms (Rooms.insert hostId (room {Room.followerThreads = threadId : Room.followerThreads room}) rooms)
+      Just roomToUpdate ->
+        TVar.writeTVar tRooms (Rooms.insert hostId (roomToUpdate {Room.followerThreads = threadId : Room.followerThreads roomToUpdate}) rooms)
           $> True
   if success
     then pure ()

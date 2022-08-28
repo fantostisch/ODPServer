@@ -32,7 +32,7 @@ isValidJDNWSHost url =
    in correctRemaining && correctLocation
 
 newJDNWSURL :: String -> [(String, String)] -> Either String JDNWSURL
-newJDNWSURL host params =
-  if isValidJDNWSHost host
-    then Right JDNWSURL {host = host, pathAndParams = path ++ URL.exportParams params}
-    else Left $ "Untrusted host: " ++ host
+newJDNWSURL host' params =
+  if isValidJDNWSHost host'
+    then Right JDNWSURL {host = host', pathAndParams = path ++ URL.exportParams params}
+    else Left $ "Untrusted host: " ++ host'

@@ -132,8 +132,8 @@ updatePlayers (PlayerJoined playerID) message players =
   Player
     { Player.id = playerID,
       Player.playerJoined = message
-    } :
-  players
+    }
+    : players
 updatePlayers (PlayerLeft playerID) _ players =
   removePlayerFromList playerID players
 updatePlayers (PlayerKicked playerID) _ players =

@@ -73,8 +73,8 @@ parsePlayerUpdate msg = case extractFunctionString msg of
           newPlayer .: "id"
       )
       <&> PlayerJoined
-  "playerLeft" ->  parseJSON (.: "playerID") <&> PlayerLeft -- todo: what is the difference between playerID and controller?
-  "playerKicked" -> parseJSON (.: "playerID") <&> PlayerKicked-- todo: what is the difference between playerID and controller?
+  "playerLeft" -> parseJSON (.: "playerID") <&> PlayerLeft -- todo: what is the difference between playerID and controller?
+  "playerKicked" -> parseJSON (.: "playerID") <&> PlayerKicked -- todo: what is the difference between playerID and controller?
   _ -> Nothing
   where
     parseJSON x = toJSON msg & snd >>= parseMaybe x

@@ -181,10 +181,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
               Just (PlayerKicked originalID) -> removeIDFromList originalID
               _ -> pure ()
             case playerUpdate of
-              Just f -> atomically $ do
-                players <- TVar.readTVar tPlayers
-                let updatedRoom = updatePlayers f msg players
-                TVar.writeTVar tPlayers updatedRoom
+              Just f -> atomically $ TVar.modifyTVar' tPlayers (updatePlayers f msg)
               Nothing -> pure ()
         ) ::
         IO (Either SomeException Void)

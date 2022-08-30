@@ -11,7 +11,7 @@ import Control.Concurrent.STM (TVar, atomically, retry)
 import qualified Control.Concurrent.STM.TChan as TChan
 import qualified Control.Concurrent.STM.TVar as TVar
 import Control.Exception (try)
-import Control.Exception.Base (SomeException, throwIO)
+import Control.Exception.Base (SomeException)
 import Control.Monad (forever)
 import Data.Aeson (Object, eitherDecode, encode)
 import qualified Data.Aeson.Key as AKey
@@ -127,19 +127,17 @@ query request odpClientDataText = do
 removePlayerFromList :: Text -> [Player] -> [Player]
 removePlayerFromList playerID = filter (\p -> Player.id p /= playerID)
 
-updatePlayers :: PlayerUpdate -> BS.ByteString -> [Player] -> Maybe [Player]
-updatePlayers (PlayerJoined (Just playerID)) message players =
-  Just $
-    Player
-      { Player.id = playerID,
-        Player.playerJoined = message
-      }
-      : players
-updatePlayers (PlayerLeft (Just playerID)) _ players =
-  Just $ removePlayerFromList playerID players
-updatePlayers (PlayerKicked (Just playerID)) _ players =
-  Just $ removePlayerFromList playerID players
-updatePlayers _ _ _ = Nothing
+updatePlayers :: PlayerUpdate -> BS.ByteString -> [Player] -> [Player]
+updatePlayers (PlayerJoined playerID) message players =
+  Player
+    { Player.id = playerID,
+      Player.playerJoined = message
+    } :
+  players
+updatePlayers (PlayerLeft playerID) _ players =
+  removePlayerFromList playerID players
+updatePlayers (PlayerKicked playerID) _ players =
+  removePlayerFromList playerID players
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
 jdnClientApp sendChannel receiveChannel tPlayers conn = do
@@ -169,26 +167,24 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
             _ <- debug $ putStrLn $ "Recevied message from JDN: " ++ show originalMsg
             let playerUpdate = JDNProtocol.parsePlayerUpdate originalMsg
             case playerUpdate of
-              Just (PlayerJoined (Just originalID)) -> do
+              Just (PlayerJoined originalID) -> do
                 randomGen <- newStdGen
                 let replaceID = C.pack $ randomString randomGen Characters.aToZLowerUpperNumeric (Text.length originalID)
                 atomically $ TVar.modifyTVar replaceIDsTVar (List.insert (encodeUtf8 originalID, replaceID))
-              Just (PlayerJoined Nothing) -> throwIO $ JDNCommunicationError "Malformed playerJoined message"
               _ -> pure ()
             replaceIDs <- TVar.readTVarIO replaceIDsTVar
             let msg = replaceInMessage originalMsg replaceIDs
             -- todo: if no one reads these messages they will pile up in memory
             atomically $ TChan.writeTChan receiveChannel msg
             case playerUpdate of
-              Just (PlayerLeft (Just originalID)) -> removeIDFromList originalID
-              Just (PlayerKicked (Just originalID)) -> removeIDFromList originalID
+              Just (PlayerLeft originalID) -> removeIDFromList originalID
+              Just (PlayerKicked originalID) -> removeIDFromList originalID
               _ -> pure ()
             case playerUpdate of
               Just f -> atomically $ do
                 room <- TVar.readTVar tPlayers
-                case updatePlayers f msg room of
-                  Just updatedRoom -> TVar.writeTVar tPlayers updatedRoom
-                  Nothing -> pure () -- something is wrong, todo: log this
+                let updatedRoom = updatePlayers f msg room
+                TVar.writeTVar tPlayers updatedRoom
               Nothing -> pure ()
         ) ::
         IO (Either SomeException Void)

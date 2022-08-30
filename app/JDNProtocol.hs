@@ -20,6 +20,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.UTF8 as BSU
 import Data.Char (chr, ord)
 import Data.Function ((&))
+import Data.Functor ((<&>))
 import Data.Text (Text)
 import qualified Network.WebSockets as WS
 import Numeric (showIntAtBase)
@@ -27,7 +28,7 @@ import Utils
 
 type PlayerId = Text
 
-data PlayerUpdate = PlayerJoined (Maybe PlayerId) | PlayerLeft (Maybe PlayerId) | PlayerKicked (Maybe PlayerId)
+data PlayerUpdate = PlayerJoined PlayerId | PlayerLeft PlayerId | PlayerKicked PlayerId
 
 webSocketConnectionOptions :: WS.ConnectionOptions
 webSocketConnectionOptions =
@@ -66,16 +67,14 @@ extractFunctionString msg = C.takeWhile (/= '"') (BS.drop (length ("00h7{\"func\
 parsePlayerUpdate :: BS.ByteString -> Maybe PlayerUpdate
 parsePlayerUpdate msg = case extractFunctionString msg of
   "playerJoined" ->
-    Just $
-      PlayerJoined
-        ( parseJSON
-            ( \obj -> do
-                newPlayer <- obj .: "newPlayer"
-                newPlayer .: "id"
-            )
-        )
-  "playerLeft" -> Just $ PlayerLeft (parseJSON (.: "playerID")) -- todo: what is the difference between playerID and controller?
-  "playerKicked" -> Just $ PlayerKicked (parseJSON (.: "playerID")) -- todo: what is the difference between playerID and controller?
+    parseJSON
+      ( \obj -> do
+          newPlayer <- obj .: "newPlayer"
+          newPlayer .: "id"
+      )
+      <&> PlayerJoined
+  "playerLeft" ->  parseJSON (.: "playerID") <&> PlayerLeft -- todo: what is the difference between playerID and controller?
+  "playerKicked" -> parseJSON (.: "playerID") <&> PlayerKicked-- todo: what is the difference between playerID and controller?
   _ -> Nothing
   where
     parseJSON x = toJSON msg & snd >>= parseMaybe x

@@ -182,8 +182,8 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
               _ -> pure ()
             case playerUpdate of
               Just f -> atomically $ do
-                room <- TVar.readTVar tPlayers
-                let updatedRoom = updatePlayers f msg room
+                players <- TVar.readTVar tPlayers
+                let updatedRoom = updatePlayers f msg players
                 TVar.writeTVar tPlayers updatedRoom
               Nothing -> pure ()
         ) ::

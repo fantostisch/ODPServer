@@ -18,7 +18,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.UTF8 as BSU
-import Data.Char (intToDigit)
+import Data.Char (chr, ord)
 import Data.Function ((&))
 import Data.Text (Text)
 import qualified Network.WebSockets as WS
@@ -38,6 +38,11 @@ webSocketConnectionOptions =
 -- todo: use protocol specified by client instead of hardcoding protocol
 secWebSocketProtocol :: BS.ByteString
 secWebSocketProtocol = "screen.justdancenow.com"
+
+intToDigit :: Int -> Char
+intToDigit n
+  | n < 10 = chr (n + ord '0')
+  | otherwise = chr (n + ord 'a' - 10)
 
 prefixMessage :: BS.ByteString -> BS.ByteString
 prefixMessage message = BSU.fromString (padLeft 4 '0' (showIntAtBase 36 intToDigit (BSU.length message) "")) <> message

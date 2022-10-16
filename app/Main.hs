@@ -58,7 +58,6 @@ import Player (Player (..))
 import Room (ODPChannel)
 import qualified Room
 import Rooms (Rooms)
-import qualified Rooms
 import System.Random.Stateful
 import Utils
 import WSURLData (WSURLData)
@@ -70,7 +69,7 @@ main = do
   let host = "localhost"
   let port = 32623
   putStrLn $ "Starting on http://" ++ host ++ ":" ++ show port
-  state <- atomically $ TVar.newTVar Rooms.new
+  state <- atomically $ TVar.newTVar Map.empty
   Warp.runSettings
     (Warp.setHost (fromString host) $ Warp.setPort port Warp.defaultSettings)
     $ WaiWS.websocketsOr JDNProtocol.webSocketConnectionOptions (application state) httpApp
@@ -209,8 +208,8 @@ createJDNThread originalWSURL toJDN fromJDN tRooms hostId tPlayers =
         debug $ putStrLn $ "jdnClientApp ended: " ++ show result
         roomMaybe <- atomically $ do
           rooms <- TVar.readTVar tRooms
-          let roomMaybe = Rooms.lookup hostId rooms
-          TVar.writeTVar tRooms (Rooms.delete hostId rooms)
+          let roomMaybe = Map.lookup hostId rooms
+          TVar.writeTVar tRooms (Map.delete hostId rooms)
           pure roomMaybe
         case roomMaybe of
           Nothing -> putStrLn "Warning: trying to delete non existing room"
@@ -273,7 +272,7 @@ sendInitialSate conn registerRoomResponse tPlayers = do
 removeThreadFromFollowers :: TVar Rooms -> HostID -> IO ()
 removeThreadFromFollowers tRooms hostId = do
   threadId <- myThreadId
-  atomically $ TVar.modifyTVar tRooms (Rooms.adjust (\r -> r {Room.followerThreads = List.delete threadId (Room.followerThreads r)}) hostId)
+  atomically $ TVar.modifyTVar tRooms (Map.adjust (\r -> r {Room.followerThreads = List.delete threadId (Room.followerThreads r)}) hostId)
 
 -- todo: warn user if there is no host
 handleFollower :: Follower -> WS.Connection -> TVar Rooms -> IO (Either String (MVar ()))
@@ -282,7 +281,7 @@ handleFollower follower conn tRooms = do
   (room, registerRoomResponse) <-
     atomically $
       TVar.readTVar tRooms
-        <&> Rooms.lookup hostId
+        <&> Map.lookup hostId
         >>= ( \case
                 Nothing -> retry
                 Just room -> pure (room, Room.registerRoomResponse room)
@@ -313,11 +312,11 @@ handleFollower follower conn tRooms = do
       )
   success <- atomically $ do
     rooms <- TVar.readTVar tRooms
-    let maybeRoom = Rooms.lookup hostId rooms
+    let maybeRoom = Map.lookup hostId rooms
     case maybeRoom of
       Nothing -> pure False
       Just roomToUpdate ->
-        TVar.writeTVar tRooms (Rooms.insert hostId (roomToUpdate {Room.followerThreads = threadId : Room.followerThreads roomToUpdate}) rooms)
+        TVar.writeTVar tRooms (Map.insert hostId (roomToUpdate {Room.followerThreads = threadId : Room.followerThreads roomToUpdate}) rooms)
           $> True
   if success
     then pure ()
@@ -337,7 +336,7 @@ threadRunning threadID =
 handleHost :: Host -> JDNWSURL -> WS.Connection -> TVar Rooms -> IO (Either String (MVar (), MVar ()))
 handleHost host originalWSURL wsConn tr = do
   let hostId = ODPClient.id host
-  savedRoom <- TVar.readTVarIO tr <&> Rooms.lookup hostId
+  savedRoom <- TVar.readTVarIO tr <&> Map.lookup hostId
 
   running <- case savedRoom of
     Nothing -> pure False
@@ -376,7 +375,7 @@ handleHost host originalWSURL wsConn tr = do
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr
-        let savedRoom2 = Rooms.lookup hostId rooms
+        let savedRoom2 = Map.lookup hostId rooms
         if (savedRoom2 <&> (\r -> (Room.fromJDN r, Room.toJDN r, Room.hostToJDNThread r, Room.jdnThread r)))
           /= (savedRoom <&> (\r -> (Room.fromJDN r, Room.toJDN r, Room.hostToJDNThread r, Room.jdnThread r)))
           then pure $ Left $ "Room was changed for host: " ++ show hostId ++ "."
@@ -385,7 +384,7 @@ handleHost host originalWSURL wsConn tr = do
               Right
                 <$> TVar.writeTVar
                   tr
-                  ( Rooms.insert
+                  ( Map.insert
                       hostId
                       ( room
                           { Room.hostToJDNThread = hostToJDNThread,
@@ -398,7 +397,7 @@ handleHost host originalWSURL wsConn tr = do
               Right
                 <$> TVar.writeTVar
                   tr
-                  ( Rooms.insert
+                  ( Map.insert
                       hostId
                       Room.Room
                         { Room.toJDN = toJDN,

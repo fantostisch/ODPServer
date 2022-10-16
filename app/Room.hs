@@ -9,9 +9,9 @@ import Player (Player)
 type ODPChannel = TChan BS.ByteString
 
 data Room = Room
-  { receiveChannel :: ODPChannel,
-    sendChannel :: ODPChannel,
-    hostThread :: ThreadId,
+  { fromJDN :: ODPChannel,
+    toJDN :: ODPChannel,
+    hostToJDNThread :: ThreadId,
     jdnThread :: ThreadId,
     registerRoomResponse :: BS.ByteString,
     players :: TVar [Player],

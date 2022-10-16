@@ -140,7 +140,7 @@ updatePlayers (PlayerKicked playerID) _ players =
   removePlayerFromList playerID players
 
 jdnClientApp :: ODPChannel -> ODPChannel -> TVar [Player] -> WS.ClientApp ()
-jdnClientApp sendChannel receiveChannel tPlayers conn = do
+jdnClientApp toJDN fromJDN tPlayers conn = do
   replaceIDsTVar <- atomically $ TVar.newTVar []
 
   let replaceInMessage = List.foldl' (\m (o, r) -> B.toStrict (BSS.replace o r m))
@@ -148,15 +148,15 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
   sendingToJDNThread <-
     forkFinally
       ( forever $ do
-          originalMsg <- atomically $ TChan.readTChan sendChannel
+          originalMsg <- atomically $ TChan.readTChan toJDN
           replaceIDs <- TVar.readTVarIO replaceIDsTVar <&> (<&> Tuple.swap)
           let msg = replaceInMessage originalMsg replaceIDs
           debug $ putStrLn $ "Sending message to JDN: " ++ show msg
           WS.sendTextData conn msg
       )
       ( \(result :: Either SomeException Void) -> do
-          debug $ putStrLn $ "Sending jdnClient ended: " ++ show result
-          -- todo: kill sending thread, if no one reads sendChannel the messages will pile up in memory
+          debug $ putStrLn $ "Sending to JDN thread ended: " ++ show result
+          -- todo: kill sending thread, if no one reads toJDN channel the messages will pile up in memory
       )
 
   err <-
@@ -175,7 +175,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
             replaceIDs <- TVar.readTVarIO replaceIDsTVar
             let msg = replaceInMessage originalMsg replaceIDs
             -- todo: if no one reads these messages they will pile up in memory
-            atomically $ TChan.writeTChan receiveChannel msg
+            atomically $ TChan.writeTChan fromJDN msg
             case playerUpdate of
               Just (PlayerLeft originalID) -> removeIDFromList originalID
               Just (PlayerKicked originalID) -> removeIDFromList originalID
@@ -193,7 +193,7 @@ jdnClientApp sendChannel receiveChannel tPlayers conn = do
 
 -- todo: kill this thread and remove room when there are no hosts and no followers
 createJDNThread :: JDNWSURL -> ODPChannel -> ODPChannel -> TVar Rooms -> HostID -> TVar [Player] -> IO ThreadId
-createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers =
+createJDNThread originalWSURL toJDN fromJDN tRooms hostId tPlayers =
   forkFinally
     ( Wuss.runSecureClientWith
         (JDNWSURL.host originalWSURL)
@@ -203,7 +203,7 @@ createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers 
         [ ("Origin", "https://justdancenow.com"),
           ("Sec-WebSocket-Protocol", JDNProtocol.secWebSocketProtocol)
         ]
-        (jdnClientApp sendChannel receiveChannel tPlayers)
+        (jdnClientApp toJDN fromJDN tPlayers)
     )
     ( \(result :: Either SomeException ()) -> do
         debug $ putStrLn $ "jdnClientApp ended: " ++ show result
@@ -216,14 +216,14 @@ createJDNThread originalWSURL sendChannel receiveChannel tRooms hostId tPlayers 
           Nothing -> putStrLn "Warning: trying to delete non existing room"
           Just room -> do
             debug $ putStrLn "Killing host thread"
-            killThread $ Room.hostThread room
+            killThread $ Room.hostToJDNThread room
             debug $ putStrLn "Killing followers"
             mapM_ killThread (Room.followerThreads room)
         debug $ putStrLn "jdnClientApp cleanup done"
     )
 
-createHostToSendChannelThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
-createHostToSendChannelThread conn sendChannel = do
+createHostToJDNChannelThread :: WS.Connection -> ODPChannel -> IO (ThreadId, MVar ())
+createHostToJDNChannelThread conn toJDN = do
   mVar <- MVar.newEmptyMVar
   debug $ putStrLn "Creating host thread."
   threadId <-
@@ -233,7 +233,7 @@ createHostToSendChannelThread conn sendChannel = do
             do
               msg <- WS.receiveData conn
               debug $ putStrLn $ "Received message from host: " ++ show msg
-              atomically $ TChan.writeTChan sendChannel msg
+              atomically $ TChan.writeTChan toJDN msg
       )
       ( \(result :: Either SomeException Void) -> do
           debug $ putStrLn $ "Host thread ended: " ++ show result
@@ -242,13 +242,13 @@ createHostToSendChannelThread conn sendChannel = do
 
 {- todo: if the sending thread of the host dies, the receiving end will think it is still a host and
  sender: web will not be replaced with sender: app -}
-createRecvChannelToHostThread :: WS.Connection -> ODPChannel -> TVar Rooms -> HostID -> IO (ThreadId, MVar ())
-createRecvChannelToHostThread conn recvChannel tRooms hostId = do
+createJDNChannelToHostThread :: WS.Connection -> ODPChannel -> TVar Rooms -> HostID -> IO (ThreadId, MVar ())
+createJDNChannelToHostThread conn fromJDN tRooms hostId = do
   mVar <- MVar.newEmptyMVar
   threadId <-
     forkFinally
       ( do
-          chan <- atomically $ TChan.dupTChan recvChannel
+          chan <- atomically $ TChan.dupTChan fromJDN
           forever $ do
             msg <- atomically $ TChan.readTChan chan
             case msg of
@@ -287,11 +287,11 @@ handleFollower follower conn tRooms = do
                 Nothing -> retry
                 Just room -> pure (room, Room.registerRoomResponse room)
             )
-  receiveMVar <- MVar.newEmptyMVar
+  fromFollowerMVar <- MVar.newEmptyMVar
   threadId <-
     forkFinally
       ( do
-          chan <- atomically $ TChan.dupTChan (Room.receiveChannel room)
+          chan <- atomically $ TChan.dupTChan (Room.fromJDN room)
           _ <- WS.receiveData conn :: IO BS.ByteString -- wait for register room request
           _ <- sendInitialSate conn registerRoomResponse (Room.players room)
           forever $ do
@@ -309,7 +309,7 @@ handleFollower follower conn tRooms = do
       ( \(result :: Either SomeException Void) -> do
           debug $ putStrLn $ "Follower thread ended: " ++ show result
           removeThreadFromFollowers tRooms hostId
-          MVar.putMVar receiveMVar ()
+          MVar.putMVar fromFollowerMVar ()
       )
   success <- atomically $ do
     rooms <- TVar.readTVar tRooms
@@ -322,7 +322,7 @@ handleFollower follower conn tRooms = do
   if success
     then pure ()
     else debug (putStrLn "Created follower thread for non existing room") >> killThread threadId
-  pure $ Right receiveMVar
+  pure $ Right fromFollowerMVar
 
 threadRunning :: ThreadId -> IO Bool
 threadRunning threadID =
@@ -341,7 +341,7 @@ handleHost host originalWSURL wsConn tr = do
 
   running <- case savedRoom of
     Nothing -> pure False
-    Just room -> room & Room.hostThread & threadRunning
+    Just room -> room & Room.hostToJDNThread & threadRunning
 
   tPlayers <- case savedRoom of
     Nothing -> atomically $ TVar.newTVar []
@@ -350,35 +350,35 @@ handleHost host originalWSURL wsConn tr = do
   if running
     then pure $ Left "HostID already claimed."
     else do
-      sendChannel <- case savedRoom of
-        Just room -> pure $ Room.sendChannel room
+      toJDN <- case savedRoom of
+        Just room -> pure $ Room.toJDN room
         Nothing -> atomically TChan.newTChan
-      receiveChannel <- case savedRoom of
-        Just room -> pure $ Room.receiveChannel room
+      fromJDN <- case savedRoom of
+        Just room -> pure $ Room.fromJDN room
         Nothing -> atomically TChan.newTChan
       jdnThreadMaybe <- case savedRoom of
         Just _ -> pure Nothing
-        Nothing -> Just <$> createJDNThread originalWSURL sendChannel receiveChannel tr hostId tPlayers
+        Nothing -> Just <$> createJDNThread originalWSURL toJDN fromJDN tr hostId tPlayers
 
       registerRoomRequest <- WS.receiveData wsConn
       registerRoomResponse <- case savedRoom of
         Just room -> pure $ Room.registerRoomResponse room
         Nothing -> do
-          _ <- atomically $ TChan.writeTChan sendChannel registerRoomRequest
+          _ <- atomically $ TChan.writeTChan toJDN registerRoomRequest
           debug $ putStrLn "Waiting for registerRoom response"
-          atomically $ TChan.readTChan receiveChannel
+          atomically $ TChan.readTChan fromJDN
       debug $ putStrLn $ "Sending registerRoom response: " ++ C.unpack registerRoomResponse
 
       sendInitialSate wsConn registerRoomResponse tPlayers
 
-      (hostSendingThread, sendMVar) <- createHostToSendChannelThread wsConn sendChannel
-      (hostReceivingThread, recvMVar) <- createRecvChannelToHostThread wsConn receiveChannel tr hostId
+      (hostToJDNThread, sendMVar) <- createHostToJDNChannelThread wsConn toJDN
+      (jdnToHostThread, recvMVar) <- createJDNChannelToHostThread wsConn fromJDN tr hostId
 
       result <- atomically $ do
         rooms <- TVar.readTVar tr
         let savedRoom2 = Rooms.lookup hostId rooms
-        if (savedRoom2 <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
-          /= (savedRoom <&> (\r -> (Room.receiveChannel r, Room.sendChannel r, Room.hostThread r, Room.jdnThread r)))
+        if (savedRoom2 <&> (\r -> (Room.fromJDN r, Room.toJDN r, Room.hostToJDNThread r, Room.jdnThread r)))
+          /= (savedRoom <&> (\r -> (Room.fromJDN r, Room.toJDN r, Room.hostToJDNThread r, Room.jdnThread r)))
           then pure $ Left $ "Room was changed for host: " ++ show hostId ++ "."
           else case savedRoom2 of
             Just room ->
@@ -388,8 +388,8 @@ handleHost host originalWSURL wsConn tr = do
                   ( Rooms.insert
                       hostId
                       ( room
-                          { Room.hostThread = hostSendingThread,
-                            Room.followerThreads = hostReceivingThread : Room.followerThreads room
+                          { Room.hostToJDNThread = hostToJDNThread,
+                            Room.followerThreads = jdnToHostThread : Room.followerThreads room
                           }
                       )
                       rooms
@@ -401,13 +401,13 @@ handleHost host originalWSURL wsConn tr = do
                   ( Rooms.insert
                       hostId
                       Room.Room
-                        { Room.sendChannel = sendChannel,
-                          Room.receiveChannel = receiveChannel,
-                          Room.hostThread = hostSendingThread,
+                        { Room.toJDN = toJDN,
+                          Room.fromJDN = fromJDN,
+                          Room.hostToJDNThread = hostToJDNThread,
                           Room.jdnThread = fromJust jdnThreadMaybe, -- todo: do not use fromJust
                           Room.registerRoomResponse = registerRoomResponse,
                           Room.players = tPlayers,
-                          Room.followerThreads = [hostReceivingThread]
+                          Room.followerThreads = [jdnToHostThread]
                         }
                       rooms
                   )
@@ -417,8 +417,8 @@ handleHost host originalWSURL wsConn tr = do
           case jdnThreadMaybe of
             Nothing -> pure ()
             Just jdnThread -> killThread jdnThread
-          _ <- killThread hostSendingThread
-          _ <- killThread hostReceivingThread
+          _ <- killThread hostToJDNThread
+          _ <- killThread jdnToHostThread
           _ <- debug $ putStrLn $ "Oops! " ++ m ++ " Trying again..."
           handleHost host originalWSURL wsConn tr
         Right _ -> pure $ Right (recvMVar, sendMVar)
